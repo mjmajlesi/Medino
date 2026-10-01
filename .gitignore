@@ -1,0 +1,15 @@
+# Deps
+node_modules/
+dist/
+
+# Graphify (generated, local only)
+.graphify/
+
+# Env
+.env
+.env.local
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
