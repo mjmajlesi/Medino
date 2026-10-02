@@ -1,12 +1,12 @@
 from django.shortcuts import get_object_or_404
+from django.db.models import Q
 from rest_framework import generics
-from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import Lesson, Section
-from .serializers import LessonSerializer, SectionSerializer
+from .serializers import LessonFilterSerializer, LessonSerializer, SectionSerializer
 from apps.resources.models import Resource
 from apps.resources.serializers import ResourceSerializer
 
@@ -27,10 +27,28 @@ class LessonListView(generics.ListAPIView):
     serializer_class = LessonSerializer
 
     def get_queryset(self):
-        unsupported = {"section", "search", "professor", "type", "term"}
-        if unsupported.intersection(self.request.query_params):
-            raise ValidationError({"detail": "Lesson filters are not available yet."})
-        return super().get_queryset()
+        filters = LessonFilterSerializer(data=self.request.query_params)
+        filters.is_valid(raise_exception=True)
+        values = filters.validated_data
+        queryset = super().get_queryset()
+
+        if values.get("section"):
+            queryset = queryset.filter(section__slug=values["section"])
+        if values.get("search"):
+            term = values["search"]
+            queryset = queryset.filter(
+                Q(title__icontains=term) | Q(professor__name__icontains=term)
+            )
+        if values.get("professor"):
+            queryset = queryset.filter(professor__name__icontains=values["professor"])
+        if values.get("term") is not None:
+            queryset = queryset.filter(term=values["term"])
+        if values.get("type"):
+            queryset = queryset.filter(
+                resources__type=values["type"],
+                resources__status=Resource.Status.APPROVED,
+            ).distinct()
+        return queryset
 
 
 class LessonDetailView(APIView):
