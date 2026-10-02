@@ -97,4 +97,10 @@ USE_TZ = True
 STATIC_URL = "static/"
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
+try:
+    MAX_UPLOAD_SIZE = int(os.environ.get("MAX_UPLOAD_SIZE", 50 * 1024 * 1024))
+except ValueError as exc:
+    raise ImproperlyConfigured("MAX_UPLOAD_SIZE must be a positive byte count.") from exc
+if MAX_UPLOAD_SIZE <= 0:
+    raise ImproperlyConfigured("MAX_UPLOAD_SIZE must be a positive byte count.")
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

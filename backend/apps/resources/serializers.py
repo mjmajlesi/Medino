@@ -1,7 +1,10 @@
 from django.urls import reverse
 from rest_framework import serializers
 
+from apps.academics.models import Lesson
+
 from .models import Resource
+from .validators import validate_resource_file
 
 
 class ResourceSerializer(serializers.ModelSerializer):
@@ -46,3 +49,47 @@ class ResourceSerializer(serializers.ModelSerializer):
         if not data["duration"]:
             data.pop("duration")
         return data
+
+
+class ResourceUploadSerializer(serializers.ModelSerializer):
+    lesson = serializers.PrimaryKeyRelatedField(queryset=Lesson.objects.select_related("professor"))
+    professor = serializers.CharField(required=False, write_only=True)
+    file = serializers.FileField(required=False)
+    external_url = serializers.URLField(required=False, allow_blank=True)
+
+    class Meta:
+        model = Resource
+        fields = ("lesson", "professor", "type", "title", "description", "file", "external_url")
+
+    def validate_title(self, value):
+        value = value.strip()
+        if not value:
+            raise serializers.ValidationError("A title is required.")
+        return value
+
+    def validate_external_url(self, value):
+        if value and not value.startswith(("https://", "http://")):
+            raise serializers.ValidationError("Use an HTTP or HTTPS URL.")
+        return value
+
+    def validate(self, attrs):
+        professor = attrs.pop("professor", None)
+        if professor is not None and professor.strip() != attrs["lesson"].professor.name:
+            raise serializers.ValidationError(
+                {"professor": "Professor does not match the selected lesson."}
+            )
+
+        if bool(attrs.get("file")) == bool(attrs.get("external_url")):
+            raise serializers.ValidationError(
+                {"source": "Provide exactly one source: file or external_url."}
+            )
+        if attrs.get("file"):
+            try:
+                validate_resource_file(attrs["file"], attrs["type"])
+            except serializers.ValidationError as exc:
+                raise serializers.ValidationError({"file": exc.detail}) from exc
+        return attrs
+
+
+class ModerationActionSerializer(serializers.Serializer):
+    action = serializers.ChoiceField(choices=("approve", "reject"))
