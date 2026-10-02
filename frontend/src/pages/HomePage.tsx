@@ -1,3 +1,4 @@
+import CtaBand from '../components/Home/CtaBand';
 import HeroSlider from '../components/Home/HeroSlider';
 import QuickSearch from '../components/Home/QuickSearch';
 import SectionCards from '../components/Home/SectionCards';
@@ -10,6 +11,7 @@ export default function HomePage() {
       <QuickSearch />
       <StatsBar />
       <SectionCards />
+      <CtaBand />
     </>
   );
 }

@@ -16,15 +16,17 @@ export default function StatsBar() {
 
   return (
     <section aria-label="آمار مدینو" className="mx-auto max-w-6xl px-4 pt-8">
-      <div className="flex flex-wrap items-center justify-center gap-x-12 gap-y-3 rounded-2xl border border-brand-100 bg-brand-50/60 px-6 py-4">
+      <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-4 rounded-3xl bg-gradient-to-l from-brand-800 via-brand-700 to-brand-600 px-6 py-6 shadow-lg shadow-brand-200">
         {isPending
           ? Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="h-6 w-20 animate-pulse rounded bg-brand-100" />
+              <div key={i} className="h-7 w-24 animate-pulse rounded-lg bg-white/20" />
             ))
           : items.map((it) => (
-              <div key={it.label} className="flex items-baseline gap-2">
-                <span className="text-4xl font-bold text-brand-700">{fa(it.value)}</span>
-                <span className="text-md text-slate-500">{it.label}</span>
+              <div key={it.label} className="flex min-w-20 flex-col items-center">
+                <span className="text-3xl font-extrabold leading-none text-white tabular-nums md:text-4xl">
+                  {fa(it.value)}
+                </span>
+                <span className="mt-1 text-xs text-brand-100">{it.label}</span>
               </div>
             ))}
       </div>

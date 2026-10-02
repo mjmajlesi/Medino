@@ -46,3 +46,24 @@ h3 {
   scrollbar-width: thin;
   scrollbar-color: var(--color-brand-200) transparent;
 }
+
+/* ui-ux-pro-max pre-delivery: pointer on clickables, visible keyboard focus */
+a[href],
+button {
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-brand-400);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

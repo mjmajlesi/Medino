@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Autoplay, Navigation, Pagination } from 'swiper/modules';
 import { Swiper, SwiperSlide } from 'swiper/react';
@@ -50,13 +51,24 @@ const slides: Slide[] = [
 ];
 
 export default function HeroSlider() {
+  // احترام به reduced-motion: بدون انیمیشن خودکار برای کاربران حساس به حرکت
+  const [reducedMotion, setReducedMotion] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    setReducedMotion(mq.matches);
+    const onChange = (e: MediaQueryListEvent) => setReducedMotion(e.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+
   return (
     <section aria-label="معرفی مدینو" className="mx-auto max-w-6xl px-4 pt-6">
       <Swiper
         modules={[Autoplay, Pagination, Navigation]}
         slidesPerView={1}
         loop
-        autoplay={{ delay: 5000, disableOnInteraction: false }}
+        autoplay={reducedMotion ? false : { delay: 5000, disableOnInteraction: false }}
         pagination={{ clickable: true }}
         navigation
         className="hero-swiper overflow-hidden rounded-2xl"

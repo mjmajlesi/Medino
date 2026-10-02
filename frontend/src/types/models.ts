@@ -26,6 +26,10 @@ export interface Lesson {
   professor: string;
   term: number;
   code?: string;
+  /** از API می‌آید — در Mock مقدار نمایشی دارد */
+  views?: number;
+  /** از API می‌آید — در Mock مقدار نمایشی دارد */
+  created_at?: string;
 }
 
 export interface Resource {
@@ -53,6 +57,7 @@ export interface LessonFilters {
   professor?: string;
   type?: ResourceType | '';
   term?: number | '';
+  sort?: 'newest' | 'popular' | '';
 }
 
 export interface StudentUser {

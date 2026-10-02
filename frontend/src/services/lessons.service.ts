@@ -15,7 +15,7 @@ const delay = (ms = 250) => new Promise((r) => setTimeout(r, ms));
 function applyFilters(lessons: Lesson[], f: LessonFilters): Lesson[] {
   const q = (f.search ?? '').trim();
   const prof = (f.professor ?? '').trim();
-  return lessons.filter((l) => {
+  const filtered = lessons.filter((l) => {
     if (f.section && l.section_slug !== f.section) return false;
     if (q && !`${l.title} ${l.professor}`.includes(q)) return false;
     if (prof && !l.professor.includes(prof)) return false;
@@ -30,6 +30,13 @@ function applyFilters(lessons: Lesson[], f: LessonFilters): Lesson[] {
     }
     return true;
   });
+  if (f.sort === 'newest') {
+    return [...filtered].sort((a, b) => (b.created_at ?? '').localeCompare(a.created_at ?? ''));
+  }
+  if (f.sort === 'popular') {
+    return [...filtered].sort((a, b) => (b.views ?? 0) - (a.views ?? 0));
+  }
+  return filtered;
 }
 
 export async function getSections(): Promise<Section[]> {
@@ -53,6 +60,12 @@ export async function getLessons(filters: LessonFilters = {}): Promise<Lesson[]>
       professor: filters.professor || undefined,
       type: filters.type || undefined,
       term: filters.term === '' ? undefined : filters.term,
+      ordering:
+        filters.sort === 'newest'
+          ? '-created_at'
+          : filters.sort === 'popular'
+            ? '-views'
+            : undefined,
     },
   });
   return data;
