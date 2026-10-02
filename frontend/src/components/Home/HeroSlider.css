@@ -1,0 +1,22 @@
+/* هم‌تم کردن دات‌ها و فلش‌های Swiper با برند مدینو */
+.hero-swiper {
+  --swiper-pagination-color: var(--color-brand-500);
+  --swiper-pagination-bullet-inactive-color: var(--color-brand-200);
+  --swiper-navigation-color: var(--color-brand-600);
+  --swiper-navigation-size: 14px;
+}
+
+.hero-swiper .swiper-button-next,
+.hero-swiper .swiper-button-prev {
+  background: rgb(255 255 255 / 0.85);
+  border-radius: 9999px;
+  width: 28px;
+  height: 28px;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.12);
+}
+
+.hero-swiper .swiper-button-next::after,
+.hero-swiper .swiper-button-prev::after {
+  font-size: 11px;
+  font-weight: 700;
+}

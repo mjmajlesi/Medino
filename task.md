@@ -6,17 +6,17 @@
 > فرمت وضعیت: `[ ]` انجام‌نشده | `[x]` تاییدشده | `~` در حال انجام (فقط یکی در هر لحظه)
 
 ## فاز ۰ — اسکافولد (پیش‌نیاز همه)
-- [~] TASK-01 — ساخت پروژه Vite+React+TS در `frontend/` + نصب پکیج‌های پایه (router, tailwind, axios, react-query, zustand, hook-form, zod, swiper)
+- [x] TASK-01 — ساخت پروژه Vite+React+TS در `frontend/` + نصب پکیج‌های پایه (router, tailwind, axios, react-query, zustand, hook-form, zod, swiper)
   - خروجی: `npm run dev` بالا بیاید. — **تسک بعدی که با تایید شما شروع می‌شود همین است.**
 
 ## فاز ۱ — زیرساخت
-- [ ] TASK-02 — کانفیگ Tailwind + تم سفید/آبی + فونت Vazirmatn + `dir=rtl` + استایل پایه
-- [ ] TASK-03 — روتینگ کامل + `MainLayout` (Header/Footer) + صفحات خالی (placeholder) + صفحه 404
-- [ ] TASK-04 — لایه `services/api.ts` + `types/models.ts` + `mocks/` (۶ بخش + ~۱۲ درس + منابع تستی) + فلگ `USE_MOCK`
+- [x] TASK-02 — کانفیگ Tailwind + تم سفید/آبی + فونت Vazirmatn + `dir=rtl` + استایل پایه
+- [x] TASK-03 — روتینگ کامل + `MainLayout` (Header/Footer) + صفحات خالی (placeholder) + صفحه 404
+- [x] TASK-04 — لایه `services/api.ts` + `types/models.ts` + `mocks/` (۶ بخش + ~۱۲ درس + منابع تستی) + فلگ `USE_MOCK`
 
 ## فاز ۲ — صفحه اصلی
-- [ ] TASK-05 — اسلایدر ۳ اسلایدی هدر (Swiper + autoplay + دات + ریسپانسیو)
-- [ ] TASK-06 — ۶ کارت بخش (علوم پایه، فیزیوپات، کارآموزی، کارورزی، استاژری، عمومی) + جستجوی سریع + اتصال به Mock
+- [x] TASK-05 — اسلایدر ۳ اسلایدی هدر (Swiper + autoplay + دات + ریسپانسیو)
+- [~] TASK-06 — ۶ کارت بخش (علوم پایه، فیزیوپات، کارآموزی، کارورزی، استاژری، عمومی) + جستجوی سریع + اتصال به Mock
 
 ## فاز ۳ — لیست دروس + سرچ و فیلتر (مهم‌ترین — با دقت بالا)
 - [ ] TASK-07 — صفحه `LessonsList`: گرید کارت‌ها + `SearchBar` با debounce (جستجو روی نام درس/استاد)
@@ -47,7 +47,12 @@
 | تاریخ | تسک | نتیجه | graphify |
 |-------|-----|-------|----------|
 | 2026-10-01 | — | plan.md و task.md ساخته شد + graphify نصب و run اولیه شد | done |
-| 2026-10-02 | TASK-01 | اسکافولد Vite+React+TS + نصب ۹ پکیج، build سبز و dev روی 5173 با کد ۲۰۰ — در انتظار تایید | done |
+| 2026-10-02 | TASK-01 | اسکافولد Vite+React+TS + نصب ۹ پکیج، build سبز و dev روی 5173 با کد ۲۰۰ — تایید شد | done |
+| 2026-10-02 | TASK-02 | پلاگین Tailwind v4 + تم brand آبی + Vazirmatn + fa/rtl، build سبز — تایید شد | done |
+| 2026-10-02 | TASK-03 | روتینگ ۱۱ صفحه + MainLayout + هدر/فوتر + 404، build سبز و هر ۴ روت ۲۰۰ — تایید شد | done |
+| 2026-10-02 | TASK-04 | مدل‌ها + api client + سه سرویس + موک ۶ بخش/۱۲ درس/۱۲ منبع + env.example، build سبز — تایید شد | done |
+| 2026-10-02 | TASK-05 | اسلایدر با ۳ عکس assets + اورلی سفید + فلش‌های کوچک، build سبز و خانه ۲۰۰ — تایید شد | done |
+| 2026-10-02 | TASK-06 | کارت‌ها با آیکون lucide + فلش hover + نوار آمار داینامیک (فقط تاییدشده‌ها)، build سبز و خانه ۲۰۰ — در انتظار تایید | done |
 
 ---
 *قبل از شروع هر تسک، آن را به `~` تغییر بده و بعد از تایید کاربر `x` بزن.*
