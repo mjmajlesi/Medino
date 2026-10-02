@@ -7,6 +7,8 @@ from rest_framework.views import APIView
 
 from .models import Lesson, Section
 from .serializers import LessonSerializer, SectionSerializer
+from apps.resources.models import Resource
+from apps.resources.serializers import ResourceSerializer
 
 
 class SectionListView(generics.ListAPIView):
@@ -39,4 +41,14 @@ class LessonDetailView(APIView):
         lesson = get_object_or_404(
             Lesson.objects.select_related("section", "professor"), pk=pk
         )
-        return Response({"lesson": LessonSerializer(lesson).data, "resources": []})
+        resources = Resource.objects.filter(
+            lesson=lesson, status=Resource.Status.APPROVED
+        ).select_related("uploaded_by")
+        return Response(
+            {
+                "lesson": LessonSerializer(lesson).data,
+                "resources": ResourceSerializer(
+                    resources, many=True, context={"request": request}
+                ).data,
+            }
+        )
