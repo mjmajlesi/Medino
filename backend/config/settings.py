@@ -34,7 +34,10 @@ def env_list(name):
 
 SECRET_KEY = os.environ.get("SECRET_KEY")
 if not SECRET_KEY:
-    raise ImproperlyConfigured("SECRET_KEY must be set in the environment.")
+    raise ImproperlyConfigured(
+        "SECRET_KEY must be set in the environment or in backend/.env. "
+        "See backend/README.md for local setup."
+    )
 
 DEBUG = os.environ.get("DEBUG", "False").lower() in {"1", "true", "yes", "on"}
 ALLOWED_HOSTS = env_list("ALLOWED_HOSTS")
