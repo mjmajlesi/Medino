@@ -3,7 +3,7 @@ from django.db.models import Count
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from rest_framework.exceptions import AuthenticationFailed, ValidationError
+from rest_framework.exceptions import AuthenticationFailed, PermissionDenied, ValidationError
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
@@ -65,10 +65,13 @@ class UploadView(APIView):
         serializer = ResourceUploadSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = request.user
-        review = {"reviewed_by": user, "reviewed_at": timezone.now()} if user.is_staff else {}
+        direct = serializer.validated_data.pop("direct")
+        if direct and not user.is_staff:
+            raise PermissionDenied("Only staff may upload directly.")
+        review = {"reviewed_by": user, "reviewed_at": timezone.now()} if direct else {}
         resource = serializer.save(
             uploaded_by=user,
-            status=Resource.Status.APPROVED if user.is_staff else Resource.Status.PENDING,
+            status=Resource.Status.APPROVED if direct else Resource.Status.PENDING,
             **review,
         )
         return Response({"id": str(resource.pk), "status": resource.status}, status=201)

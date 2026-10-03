@@ -97,6 +97,19 @@ class UploadWorkflowTests(TestCase):
         self.assertTrue(resource.file.name.startswith("resources/"))
         self.assertEqual(resource.description, "Useful resource")
 
+    def test_student_cannot_request_direct_upload(self):
+        self.authenticate(self.student)
+        response = self.upload(direct="true")
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(Resource.objects.exists())
+
+    def test_invalid_direct_value_is_rejected(self):
+        self.authenticate(self.staff)
+        response = self.upload(direct="invalid")
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("direct", response.json())
+        self.assertFalse(Resource.objects.exists())
+
     def test_anonymous_upload_is_unauthorized(self):
         self.assertEqual(self.upload().status_code, 401)
 
@@ -172,7 +185,7 @@ class UploadWorkflowTests(TestCase):
 
     def test_staff_direct_upload_is_reviewed_and_public(self):
         self.authenticate(self.staff)
-        response = self.upload()
+        response = self.upload(direct="true")
         self.assertEqual(response.status_code, 201, response.content)
         resource = Resource.objects.get(pk=response.json()["id"])
         self.assertEqual(response.json(), {"id": str(resource.pk), "status": "approved"})
@@ -184,6 +197,21 @@ class UploadWorkflowTests(TestCase):
         self.assertEqual([row["id"] for row in detail["resources"]], [str(resource.pk)])
         self.assertEqual(self.client.get(reverse("site-stats")).json()["notes"], 1)
         self.assertEqual(self.file_response(resource), 200)
+
+    def test_staff_upload_without_direct_is_pending(self):
+        self.authenticate(self.staff)
+        response = self.upload()
+        self.assertEqual(response.status_code, 201)
+        resource = Resource.objects.get(pk=response.json()["id"])
+        self.assertEqual(response.json()["status"], "pending")
+        self.assertIsNone(resource.reviewed_by)
+        self.assertIsNone(resource.reviewed_at)
+        self.assertEqual(self.client.get(reverse("site-stats")).json()["notes"], 0)
+        self.assertEqual(self.client.get(reverse("pending-uploads")).json()[0]["id"], str(resource.pk))
+
+        response = self.upload(direct="false")
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.json()["status"], "pending")
 
     def test_my_uploads_are_private_all_statuses_and_newest_first(self):
         own = [

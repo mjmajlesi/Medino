@@ -56,10 +56,11 @@ class ResourceUploadSerializer(serializers.ModelSerializer):
     professor = serializers.CharField(required=False, write_only=True)
     file = serializers.FileField(required=False)
     external_url = serializers.URLField(required=False, allow_blank=True)
+    direct = serializers.BooleanField(required=False, default=False, write_only=True)
 
     class Meta:
         model = Resource
-        fields = ("lesson", "professor", "type", "title", "description", "file", "external_url")
+        fields = ("lesson", "professor", "type", "title", "description", "file", "external_url", "direct")
 
     def validate_title(self, value):
         value = value.strip()

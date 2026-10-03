@@ -37,9 +37,13 @@ class AccountsAPITests(TestCase):
         return User.objects.create_user(**details)
 
     def expected_user(self):
-        return {key: self.payload[key] for key in (
-            "first_name", "last_name", "student_no", "entry_year", "current_term"
-        )}
+        return {
+            **{
+                key: self.payload[key]
+                for key in ("first_name", "last_name", "student_no", "entry_year", "current_term")
+            },
+            "is_staff": False,
+        }
 
     def test_registration_creates_normal_student_and_returns_tokens(self):
         response = self.client.post(self.register_url, self.payload, format="json")
@@ -147,6 +151,21 @@ class AccountsAPITests(TestCase):
         self.assertEqual(response.data["user"], self.expected_user())
         self.assertEqual(AccessToken(response.data["access"])["user_id"], str(user.pk))
         self.assertEqual(RefreshToken(response.data["refresh"])["user_id"], str(user.pk))
+
+    def test_staff_login_and_me_report_staff_status(self):
+        staff = self.create_student(is_staff=True)
+        login = self.client.post(
+            self.login_url,
+            {"student_no": staff.student_no, "password": self.payload["password"]},
+            format="json",
+        )
+        self.assertEqual(login.status_code, 200)
+        self.assertEqual(login.data["user"], {**self.expected_user(), "is_staff": True})
+
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {login.data["access"]}')
+        me = self.client.get(self.me_url)
+        self.assertEqual(me.status_code, 200)
+        self.assertEqual(me.data, login.data["user"])
 
     def test_login_rejects_wrong_unknown_and_inactive_with_same_error(self):
         user = self.create_student()
