@@ -1,7 +1,5 @@
 import type { StudentUser } from '../types/models';
-import api, { USE_MOCK } from './api';
-
-const TOKEN_KEY = 'medino_token';
+import api, { clearTokens, setTokens, USE_MOCK } from './api';
 
 export interface RegisterInput extends StudentUser {
   password: string;
@@ -64,19 +62,19 @@ export async function login(studentNo: string, _password: string): Promise<AuthR
     if (found) {
       if (found.password !== _password) throw new Error('رمز عبور اشتباه است');
       const result = { user: found.user, access: 'mock-access', refresh: 'mock-refresh' };
-      localStorage.setItem(TOKEN_KEY, result.access);
+      setTokens(result.access, result.refresh);
       return result;
     }
     // حالت دمو: شماره ناشناس با همان یوزر تستی وارد می‌شود
     const result = { user: mockUser, access: 'mock-access', refresh: 'mock-refresh' };
-    localStorage.setItem(TOKEN_KEY, result.access);
+    setTokens(result.access, result.refresh);
     return result;
   }
   const { data } = await api.post('/auth/login/', {
     student_no: studentNo,
     password: _password,
   });
-  localStorage.setItem(TOKEN_KEY, data.access);
+  setTokens(data.access, data.refresh);
   return data;
 }
 
@@ -86,22 +84,28 @@ export async function register(input: RegisterInput): Promise<AuthResult> {
     const { password, ...user } = input;
     mockRegistry.set(user.student_no, { user, password });
     const result = { user, access: 'mock-access', refresh: 'mock-refresh' };
-    localStorage.setItem(TOKEN_KEY, result.access);
+    setTokens(result.access, result.refresh);
     return result;
   }
   const { data } = await api.post('/auth/register/', input);
-  localStorage.setItem(TOKEN_KEY, data.access);
+  setTokens(data.access, data.refresh);
   return data;
 }
 
 export function logout() {
-  localStorage.removeItem(TOKEN_KEY);
+  clearTokens();
+}
+
+/** پروفایل جاری از سرور — برای اعتبارسنجی مجدد نشست بعد از رفرش */
+export async function getMe(): Promise<StudentUser> {
+  const { data } = await api.get<StudentUser>('/auth/me/');
+  return data;
 }
 
 /** ورود نمایشی ادمین — فقط Mock؛ دکمه‌اش در LoginPage است */
 export async function mockAdminLogin(): Promise<AuthResult> {
   await new Promise((r) => setTimeout(r, 300));
   const result = { user: mockAdmin, access: 'mock-admin-access', refresh: 'mock-admin-refresh' };
-  localStorage.setItem(TOKEN_KEY, result.access);
+  setTokens(result.access, result.refresh);
   return result;
 }

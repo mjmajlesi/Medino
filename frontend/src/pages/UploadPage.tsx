@@ -11,22 +11,42 @@ import { getLessons, getSections } from '../services/lessons.service';
 import { submitUpload } from '../services/uploads.service';
 import { useAuthStore } from '../store/auth.store';
 
-/** سقف ۲۰۰MB — باید با بک‌اند نهایی شود (plan.md) */
-const MAX_MB = 200;
+/**
+ * سقف و فرمت‌ها دقیقاً مطابق بک‌اند (validators.py):
+ * اسناد (جزوه/سوال/خلاصه): PDF و DOCX — ویدیو: MP4 و WebM.
+ * بک‌اند محتوا را هم بررسی می‌کند؛ این چک فرانت فقط برای UX زودهنگام است.
+ */
+const MAX_MB = 50;
 const MAX_BYTES = MAX_MB * 1024 * 1024;
+const DOC_EXTS = ['pdf', 'docx'];
+const VIDEO_EXTS = ['mp4', 'webm'];
 
-const schema = z.object({
-  section: z.string().min(1, 'بخش را انتخاب کن'),
-  lessonId: z.string().min(1, 'درس را انتخاب کن'),
-  professor: z.string().trim().min(2, 'نام استاد لازم است'),
-  type: z.enum(['note', 'video', 'sample', 'summary'], { message: 'نوع منبع را انتخاب کن' }),
-  title: z.string().trim().min(3, 'عنوان حداقل ۳ کاراکتر است'),
-  description: z.string().trim().max(500, 'توضیح حداکثر ۵۰۰ کاراکتر است').optional(),
-  file: z
-    .instanceof(FileList)
-    .refine((fl) => fl.length > 0, 'فایل را انتخاب کن')
-    .refine((fl) => fl.length === 0 || fl[0].size <= MAX_BYTES, `حجم فایل حداکثر ${MAX_MB} مگابایت است`),
-});
+const schema = z
+  .object({
+    section: z.string().min(1, 'بخش را انتخاب کن'),
+    lessonId: z.string().min(1, 'درس را انتخاب کن'),
+    professor: z.string().trim().min(2, 'نام استاد لازم است'),
+    type: z.enum(['note', 'video', 'sample', 'summary'], { message: 'نوع منبع را انتخاب کن' }),
+    title: z.string().trim().min(3, 'عنوان حداقل ۳ کاراکتر است'),
+    description: z.string().trim().max(500, 'توضیح حداکثر ۵۰۰ کاراکتر است').optional(),
+    file: z.instanceof(FileList).refine((fl) => fl.length > 0, 'فایل را انتخاب کن'),
+  })
+  .superRefine((data, ctx) => {
+    const f = data.file[0];
+    if (!f) return;
+    if (f.size > MAX_BYTES) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['file'], message: `حجم فایل حداکثر ${MAX_MB} مگابایت است` });
+    }
+    const ext = (f.name.split('.').pop() ?? '').toLowerCase();
+    const allowed = data.type === 'video' ? VIDEO_EXTS : DOC_EXTS;
+    if (!allowed.includes(ext)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['file'],
+        message: `برای «${RESOURCE_TYPE_LABELS[data.type]}» فقط ${allowed.join('، ')} مجاز است`,
+      });
+    }
+  });
 
 type Form = z.infer<typeof schema>;
 
@@ -79,6 +99,7 @@ export default function UploadPage() {
 
   const watchedSection = useWatch({ control, name: 'section' });
   const watchedFile = useWatch({ control, name: 'file' });
+  const watchedType = useWatch({ control, name: 'type' });
   const sectionLessons = allLessons.filter((l) => l.section_slug === (watchedSection as SectionSlug));
 
   const onSectionChange = (slug: string) => {
@@ -191,7 +212,7 @@ export default function UploadPage() {
           <input
             type="file"
             {...register('file')}
-            accept=".pdf,.doc,.docx,.mp4,.mkv,.webm,.zip,.rar,.jpg,.jpeg,.png"
+            accept={watchedType === 'video' ? '.mp4,.webm' : '.pdf,.docx'}
             className="w-full rounded-xl border border-dashed border-brand-200 bg-brand-50/50 px-4 py-3 text-sm text-slate-600 file:me-3 file:rounded-lg file:border-0 file:bg-brand-500 file:px-4 file:py-1.5 file:text-xs file:text-white"
           />
           {watchedFile && watchedFile.length > 0 && (

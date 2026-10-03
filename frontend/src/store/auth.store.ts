@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { StudentUser } from '../types/models';
-import { USE_MOCK } from '../services/api';
-import { login as svcLogin, logout as svcLogout, mockAdminLogin, register as svcRegister } from '../services/auth.service';
+import { getAccessToken, USE_MOCK } from '../services/api';
+import { getMe, login as svcLogin, logout as svcLogout, mockAdminLogin, register as svcRegister } from '../services/auth.service';
 import type { RegisterInput } from '../services/auth.service';
 
 const USER_KEY = 'medino_user';
@@ -21,6 +21,11 @@ interface AuthState {
   register: (input: RegisterInput) => Promise<void>;
   loginAsAdmin: () => Promise<void>;
   logout: () => void;
+  /**
+   * اعتبارسنجی مجدد نشست در شروع اپ — در حالت واقعی با /auth/me/ نقش
+   * و مشخصات تازه را می‌گیرد؛ توکن نامعتبر = خروج خودکار
+   */
+  restore: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -49,5 +54,18 @@ export const useAuthStore = create<AuthState>((set) => ({
     svcLogout();
     localStorage.removeItem(USER_KEY);
     set({ user: null });
+  },
+
+  restore: async () => {
+    if (USE_MOCK || !getAccessToken()) return;
+    try {
+      const user = await getMe();
+      localStorage.setItem(USER_KEY, JSON.stringify(user));
+      set({ user });
+    } catch {
+      svcLogout();
+      localStorage.removeItem(USER_KEY);
+      set({ user: null });
+    }
   },
 }));

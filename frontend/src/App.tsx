@@ -1,6 +1,8 @@
+import { useEffect } from 'react';
 import { Route, Routes } from 'react-router-dom';
 import RequireAdmin from './components/Auth/RequireAdmin';
 import RequireAuth from './components/Auth/RequireAuth';
+import { useAuthStore } from './store/auth.store';
 import MainLayout from './components/Layout/MainLayout';
 import AdminDashboardPage from './pages/AdminDashboardPage';
 import AdminPendingPage from './pages/AdminPendingPage';
@@ -15,6 +17,11 @@ import SectionsPage from './pages/SectionsPage';
 import UploadPage from './pages/UploadPage';
 
 export default function App() {
+  const restore = useAuthStore((s) => s.restore);
+  useEffect(() => {
+    restore();
+  }, [restore]);
+
   return (
     <Routes>
       <Route element={<MainLayout />}>
