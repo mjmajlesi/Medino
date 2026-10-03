@@ -1,5 +1,8 @@
+from datetime import timedelta
+
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
 from apps.academics.models import Lesson, Professor, Section
 from apps.resources.models import Resource
@@ -62,7 +65,7 @@ class AcademicsAPITests(TestCase):
         self.assertIsInstance(data, list)
         self.assertEqual(len(data), 3)
         self.assertEqual(
-            data[0],
+            {key: value for key, value in data[0].items() if key != "created_at"},
             {
                 "id": str(self.anatomy.pk),
                 "section_slug": "basic",
@@ -70,8 +73,10 @@ class AcademicsAPITests(TestCase):
                 "professor": "دکتر رضایی",
                 "term": 1,
                 "code": "BAS-101",
+                "views": 0,
             },
         )
+        self.assertIsInstance(data[0]["created_at"], str)
         self.assertIsInstance(data[0]["id"], str)
         self.assertIsInstance(data[0]["term"], int)
         self.assertNotIn("code", data[1])
@@ -82,8 +87,10 @@ class AcademicsAPITests(TestCase):
     def test_lesson_detail_has_empty_resources_and_unknown_id_is_404(self):
         response = self.client.get(reverse("lesson-detail", args=[self.anatomy.pk]))
         self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertIsInstance(data["lesson"].pop("created_at"), str)
         self.assertEqual(
-            response.json(),
+            data,
             {
                 "lesson": {
                     "id": str(self.anatomy.pk),
@@ -92,6 +99,7 @@ class AcademicsAPITests(TestCase):
                     "professor": "دکتر رضایی",
                     "term": 1,
                     "code": "BAS-101",
+                    "views": 1,
                 },
                 "resources": [],
             },
@@ -193,3 +201,20 @@ class AcademicsAPITests(TestCase):
             self.lesson_ids(foo="bar"),
             [str(self.anatomy.pk), str(self.biochemistry.pk), str(self.language.pk)],
         )
+
+    def test_frontend_sorting_and_detail_view_count(self):
+        now = timezone.now()
+        Lesson.objects.filter(pk=self.anatomy.pk).update(created_at=now - timedelta(days=2))
+        Lesson.objects.filter(pk=self.biochemistry.pk).update(created_at=now)
+        Lesson.objects.filter(pk=self.language.pk).update(created_at=now - timedelta(days=1))
+        self.assertEqual(
+            self.lesson_ids(ordering="-created_at"),
+            [str(self.biochemistry.pk), str(self.language.pk), str(self.anatomy.pk)],
+        )
+
+        detail_url = reverse("lesson-detail", args=[self.anatomy.pk])
+        self.client.get(detail_url)
+        self.client.get(detail_url)
+        self.assertEqual(Lesson.objects.get(pk=self.anatomy.pk).views, 2)
+        self.assertEqual(self.lesson_ids(ordering="-views")[0], str(self.anatomy.pk))
+        self.assertEqual(self.client.get(reverse("lesson-list"), {"ordering": "invalid"}).status_code, 400)

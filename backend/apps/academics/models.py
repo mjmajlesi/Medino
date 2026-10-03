@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 
 
 class Section(models.Model):
@@ -32,6 +33,8 @@ class Lesson(models.Model):
     )
     term = models.PositiveIntegerField()
     code = models.CharField(max_length=32, blank=True)
+    created_at = models.DateTimeField(default=timezone.now, editable=False)
+    views = models.PositiveIntegerField(default=0)
 
     class Meta:
         ordering = ("section__order", "id")

@@ -42,18 +42,20 @@ class PublicResourceTests(TestCase):
         self.create_resource(status=Resource.Status.PENDING, title="Pending")
         self.create_resource(status=Resource.Status.REJECTED, title="Rejected")
 
-        with self.assertNumQueries(2):
+        with self.assertNumQueries(4):
             response = self.client.get(reverse("lesson-detail", args=[self.lesson.pk]))
 
         self.assertEqual(response.status_code, 200)
         data = response.json()
         self.assertEqual(set(data), {"lesson", "resources"})
+        self.assertIsInstance(data["lesson"].pop("created_at"), str)
         self.assertEqual(data["lesson"], {
             "id": str(self.lesson.pk),
             "section_slug": "basic",
             "title": "آناتومی",
             "professor": "دکتر رضایی",
             "term": 1,
+            "views": 1,
         })
         self.assertIsInstance(data["resources"], list)
         self.assertEqual([row["id"] for row in data["resources"]], [str(approved.pk)])

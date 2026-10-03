@@ -1,5 +1,5 @@
 from django.shortcuts import get_object_or_404
-from django.db.models import Q
+from django.db.models import F, Q
 from rest_framework import generics
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -48,6 +48,8 @@ class LessonListView(generics.ListAPIView):
                 resources__type=values["type"],
                 resources__status=Resource.Status.APPROVED,
             ).distinct()
+        if values.get("ordering"):
+            queryset = queryset.order_by(values["ordering"], "-pk")
         return queryset
 
 
@@ -59,6 +61,8 @@ class LessonDetailView(APIView):
         lesson = get_object_or_404(
             Lesson.objects.select_related("section", "professor"), pk=pk
         )
+        Lesson.objects.filter(pk=lesson.pk).update(views=F("views") + 1)
+        lesson.refresh_from_db(fields=["views"])
         resources = Resource.objects.filter(
             lesson=lesson, status=Resource.Status.APPROVED
         ).select_related("uploaded_by")

@@ -19,7 +19,7 @@ class LessonSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Lesson
-        fields = ("id", "section_slug", "title", "professor", "term", "code")
+        fields = ("id", "section_slug", "title", "professor", "term", "code", "views", "created_at")
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
@@ -34,3 +34,4 @@ class LessonFilterSerializer(serializers.Serializer):
     professor = serializers.CharField(required=False, allow_blank=True, trim_whitespace=True)
     term = serializers.IntegerField(required=False, min_value=1)
     type = serializers.ChoiceField(required=False, allow_blank=True, choices=Resource.Type.choices)
+    ordering = serializers.ChoiceField(required=False, choices=("-created_at", "-views"))
