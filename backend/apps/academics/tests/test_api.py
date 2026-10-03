@@ -99,7 +99,7 @@ class AcademicsAPITests(TestCase):
                     "professor": "دکتر رضایی",
                     "term": 1,
                     "code": "BAS-101",
-                    "views": 1,
+                    "views": 0,
                 },
                 "resources": [],
             },
@@ -202,7 +202,7 @@ class AcademicsAPITests(TestCase):
             [str(self.anatomy.pk), str(self.biochemistry.pk), str(self.language.pk)],
         )
 
-    def test_frontend_sorting_and_detail_view_count(self):
+    def test_frontend_sorting_uses_stored_values(self):
         now = timezone.now()
         Lesson.objects.filter(pk=self.anatomy.pk).update(created_at=now - timedelta(days=2))
         Lesson.objects.filter(pk=self.biochemistry.pk).update(created_at=now)
@@ -212,9 +212,19 @@ class AcademicsAPITests(TestCase):
             [str(self.biochemistry.pk), str(self.language.pk), str(self.anatomy.pk)],
         )
 
-        detail_url = reverse("lesson-detail", args=[self.anatomy.pk])
-        self.client.get(detail_url)
-        self.client.get(detail_url)
-        self.assertEqual(Lesson.objects.get(pk=self.anatomy.pk).views, 2)
-        self.assertEqual(self.lesson_ids(ordering="-views")[0], str(self.anatomy.pk))
+        Lesson.objects.filter(pk=self.language.pk).update(views=7)
+        Lesson.objects.filter(pk=self.anatomy.pk).update(views=3)
+        self.assertEqual(
+            self.lesson_ids(ordering="-views"),
+            [str(self.language.pk), str(self.anatomy.pk), str(self.biochemistry.pk)],
+        )
         self.assertEqual(self.client.get(reverse("lesson-list"), {"ordering": "invalid"}).status_code, 400)
+
+    def test_lesson_detail_does_not_change_stored_views(self):
+        Lesson.objects.filter(pk=self.anatomy.pk).update(views=7)
+        detail_url = reverse("lesson-detail", args=[self.anatomy.pk])
+        for _ in range(3):
+            response = self.client.get(detail_url)
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json()["lesson"]["views"], 7)
+            self.assertEqual(Lesson.objects.get(pk=self.anatomy.pk).views, 7)

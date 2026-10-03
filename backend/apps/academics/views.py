@@ -1,5 +1,5 @@
 from django.shortcuts import get_object_or_404
-from django.db.models import F, Q
+from django.db.models import Q
 from rest_framework import generics
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -61,8 +61,6 @@ class LessonDetailView(APIView):
         lesson = get_object_or_404(
             Lesson.objects.select_related("section", "professor"), pk=pk
         )
-        Lesson.objects.filter(pk=lesson.pk).update(views=F("views") + 1)
-        lesson.refresh_from_db(fields=["views"])
         resources = Resource.objects.filter(
             lesson=lesson, status=Resource.Status.APPROVED
         ).select_related("uploaded_by")

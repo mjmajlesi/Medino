@@ -42,7 +42,7 @@ class PublicResourceTests(TestCase):
         self.create_resource(status=Resource.Status.PENDING, title="Pending")
         self.create_resource(status=Resource.Status.REJECTED, title="Rejected")
 
-        with self.assertNumQueries(4):
+        with self.assertNumQueries(2):
             response = self.client.get(reverse("lesson-detail", args=[self.lesson.pk]))
 
         self.assertEqual(response.status_code, 200)
@@ -55,7 +55,7 @@ class PublicResourceTests(TestCase):
             "title": "آناتومی",
             "professor": "دکتر رضایی",
             "term": 1,
-            "views": 1,
+            "views": 0,
         })
         self.assertIsInstance(data["resources"], list)
         self.assertEqual([row["id"] for row in data["resources"]], [str(approved.pk)])
