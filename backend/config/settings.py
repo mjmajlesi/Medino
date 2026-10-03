@@ -9,6 +9,25 @@ from django.core.exceptions import ImproperlyConfigured
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
+def load_local_env():
+    """Load the local development .env without overriding deployed environment values."""
+    env_file = BASE_DIR / ".env"
+    if not env_file.is_file():
+        return
+    allowed = {"SECRET_KEY", "DEBUG", "ALLOWED_HOSTS", "CORS_ALLOWED_ORIGINS", "MAX_UPLOAD_SIZE"}
+    for line in env_file.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        name, value = line.split("=", 1)
+        name = name.strip()
+        if name in allowed:
+            os.environ.setdefault(name, value.strip().strip('"').strip("'"))
+
+
+load_local_env()
+
+
 def env_list(name):
     return [value.strip() for value in os.environ.get(name, "").split(",") if value.strip()]
 
