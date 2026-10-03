@@ -66,6 +66,8 @@ export interface StudentUser {
   student_no: string;
   entry_year: string;
   current_term: string;
+  /** از API می‌آید (is_staff جنگو) — در Mock فقط ادمین نمایشی true است */
+  is_staff?: boolean;
 }
 
 export const RESOURCE_TYPE_LABELS: Record<ResourceType, string> = {

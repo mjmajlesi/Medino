@@ -7,7 +7,7 @@ export interface RegisterInput extends StudentUser {
   password: string;
 }
 
-interface MockAuthResult {
+export interface AuthResult {
   user: StudentUser;
   access: string;
   refresh: string;
@@ -21,10 +21,53 @@ const mockUser: StudentUser = {
   current_term: '3',
 };
 
-export async function login(studentNo: string, _password: string): Promise<MockAuthResult> {
-  void _password;
+/** ورود نمایشی ادمین (فقط Mock — با API واقعی حذف می‌شود) */
+const mockAdmin: StudentUser = {
+  first_name: 'ادمین',
+  last_name: 'مدینو',
+  student_no: '400000000',
+  entry_year: '1400',
+  current_term: '12',
+  is_staff: true,
+};
+
+/* ------------------------------------------------------------------ */
+/* قرارداد API احراز هویت برای تیم بک‌اند (Django REST):               */
+/*   POST {VITE_API_URL}/auth/login/                                   */
+/*     body: { student_no: string, password: string }                   */
+/*   POST {VITE_API_URL}/auth/register/                                */
+/*     body: { first_name, last_name, student_no, entry_year,          */
+/*             current_term, password }                                */
+/*   هر دو در حالت موفق (200) برمی‌گردانند:                            */
+/*     { user: { first_name, last_name, student_no, entry_year,         */
+/*               current_term, is_staff }, access: string, refresh: string } */
+/*   فرانت توکن access را در هدر Authorization: Bearer <access> می‌فرستد */
+/*   با VITE_USE_MOCK=false همین کد بدون هیچ تغییری به API واقعی وصل   */
+/*   می‌شود و کل بخش Mock زیر حذف‌شدنی است.                            */
+/* ------------------------------------------------------------------ */
+
+/**
+ * رجیستری نمایشی فقط در حافظه (نه localStorage) — تا رفرش صفحه زنده است.
+ * با وصل شدن API واقعی، کل این بخش Mock دور انداخته می‌شود.
+ */
+const mockRegistry = new Map<string, StoredMockUser>();
+
+interface StoredMockUser {
+  user: StudentUser;
+  password: string;
+}
+
+export async function login(studentNo: string, _password: string): Promise<AuthResult> {
   if (USE_MOCK) {
     await new Promise((r) => setTimeout(r, 300));
+    const found = mockRegistry.get(studentNo);
+    if (found) {
+      if (found.password !== _password) throw new Error('رمز عبور اشتباه است');
+      const result = { user: found.user, access: 'mock-access', refresh: 'mock-refresh' };
+      localStorage.setItem(TOKEN_KEY, result.access);
+      return result;
+    }
+    // حالت دمو: شماره ناشناس با همان یوزر تستی وارد می‌شود
     const result = { user: mockUser, access: 'mock-access', refresh: 'mock-refresh' };
     localStorage.setItem(TOKEN_KEY, result.access);
     return result;
@@ -37,11 +80,11 @@ export async function login(studentNo: string, _password: string): Promise<MockA
   return data;
 }
 
-export async function register(input: RegisterInput): Promise<MockAuthResult> {
+export async function register(input: RegisterInput): Promise<AuthResult> {
   if (USE_MOCK) {
     await new Promise((r) => setTimeout(r, 300));
-    const { password: _pw, ...user } = input;
-    void _pw;
+    const { password, ...user } = input;
+    mockRegistry.set(user.student_no, { user, password });
     const result = { user, access: 'mock-access', refresh: 'mock-refresh' };
     localStorage.setItem(TOKEN_KEY, result.access);
     return result;
@@ -53,4 +96,12 @@ export async function register(input: RegisterInput): Promise<MockAuthResult> {
 
 export function logout() {
   localStorage.removeItem(TOKEN_KEY);
+}
+
+/** ورود نمایشی ادمین — فقط Mock؛ دکمه‌اش در LoginPage است */
+export async function mockAdminLogin(): Promise<AuthResult> {
+  await new Promise((r) => setTimeout(r, 300));
+  const result = { user: mockAdmin, access: 'mock-admin-access', refresh: 'mock-admin-refresh' };
+  localStorage.setItem(TOKEN_KEY, result.access);
+  return result;
 }

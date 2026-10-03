@@ -1,4 +1,6 @@
 import { Route, Routes } from 'react-router-dom';
+import RequireAdmin from './components/Auth/RequireAdmin';
+import RequireAuth from './components/Auth/RequireAuth';
 import MainLayout from './components/Layout/MainLayout';
 import AdminDashboardPage from './pages/AdminDashboardPage';
 import AdminPendingPage from './pages/AdminPendingPage';
@@ -20,12 +22,13 @@ export default function App() {
         <Route path="sections" element={<SectionsPage />} />
         <Route path="lessons" element={<LessonsListPage />} />
         <Route path="lessons/:id" element={<LessonDetailPage />} />
-        <Route path="upload" element={<UploadPage />} />
+        <Route path="upload" element={<RequireAuth><UploadPage /></RequireAuth>} />
         <Route path="login" element={<LoginPage />} />
         <Route path="register" element={<RegisterPage />} />
-        <Route path="profile" element={<ProfilePage />} />
-        <Route path="admin" element={<AdminDashboardPage />} />
-        <Route path="admin/pending" element={<AdminPendingPage />} />
+        <Route path="profile" element={<RequireAuth><ProfilePage /></RequireAuth>} />
+        {/* گارد نقش ادمین فعال است — اتصال کامل به API در TASK-16 */}
+        <Route path="admin" element={<RequireAuth><RequireAdmin><AdminDashboardPage /></RequireAdmin></RequireAuth>} />
+        <Route path="admin/pending" element={<RequireAuth><RequireAdmin><AdminPendingPage /></RequireAdmin></RequireAuth>} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>

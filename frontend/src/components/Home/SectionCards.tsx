@@ -49,6 +49,7 @@ export default function SectionCards() {
   }
 
   const lessons = lessonsQuery.data ?? [];
+  const countsUnknown = lessonsQuery.isError;
 
   return (
     <section aria-label="بخش‌های آموزشی" className="mx-auto max-w-6xl px-4 py-10">
@@ -78,9 +79,11 @@ export default function SectionCards() {
                 </span>
                 <div>
                   <h3 className="text-base">{s.title}</h3>
-                  <p className="text-xs text-slate-500">
-                    {count > 0 ? `${count} درس` : 'به‌زودی'}
-                  </p>
+                  {!countsUnknown && (
+                    <p className="text-xs text-slate-500">
+                      {count > 0 ? `${count} درس` : 'به‌زودی'}
+                    </p>
+                  )}
                 </div>
               </div>
               {s.description && (

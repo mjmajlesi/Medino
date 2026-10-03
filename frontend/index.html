@@ -12,6 +12,11 @@
       rel="stylesheet"
     />
     <title>مدینو | مرجع آموزشی دانشجویان پزشکی</title>
+    <script>
+      try {
+        if (localStorage.getItem('medino-theme') === 'dark') document.documentElement.classList.add('dark');
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

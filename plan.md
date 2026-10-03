@@ -90,21 +90,32 @@ Resource { id, lesson_id, type: 'note'|'video'|'sample'|'summary',
 User { first_name, last_name, student_no, entry_year, current_term, token }
 ```
 
-## ۷. قرارداد API با بک‌اند (Django REST)
+## ۷. قرارداد API با بک‌اند (Django REST) — نسخه نهایی TASK-16
 ```
 GET  /api/sections/
-GET  /api/lessons/?section=<slug>&search=<q>&professor=<q>&type=<note|video|sample|summary>&term=<n>
-GET  /api/lessons/:id/          // جزئیات + ۴ لیست منبع
-POST /api/uploads/              // multipart/form-data: lesson, professor, type, title, desc, file
-GET  /api/admin/pending/        // لیست pending (هدر Authorization: Bearer)
-POST /api/admin/approve/:id/    // { action: approve|reject, reason? }
-POST /api/auth/register/        // first_name, last_name, student_no, entry_year, current_term, password
-POST /api/auth/login/           // student_no + password -> access, refresh
+GET  /api/lessons/?section=<slug>&search=<q>&professor=<q>&type=<note|video|sample|summary>&term=<n>&ordering=<-created_at|-views>
+     // type فقط درس‌هایی با منبع approved آن نوع؛ ordering برای سورت
+GET  /api/lessons/:id/          // {lesson, resources} — فقط منابع approved
+GET  /api/stats/                // {lessons, notes, videos, samples, summaries}
+POST /api/uploads/              // multipart: lesson, professor, type, title, description?, file, direct?
+     // جواب: {id, status: 'pending'|'approved'} — direct=true فقط برای is_staff
+GET  /api/uploads/mine/        // Resource[] کاربر جاری (همه وضعیت‌ها)
+GET  /api/admin/pending/       // Resource[] — فقط is_staff (هدر Bearer)
+POST /api/admin/approve/:id/   // {action: 'approve'|'reject'} -> {id, status}
+POST /api/auth/register/       // first_name, last_name, student_no, entry_year, current_term, password
+POST /api/auth/login/          // {student_no, password}
+     // جواب هر دو: {user: {first_name, last_name, student_no, entry_year, current_term, is_staff}, access, refresh}
 ```
+⚠️ **الزامی برای بک‌اند:** فیلد `is_staff` باید در جواب login/register (و ترجیحا `/auth/me/`) باشد؛
+بدون آن گارد `/admin` فرانت هیچ ادمینی را راه نمی‌دهد. آیدی‌ها رشته‌ای (numeric-string) و
+تاریخ‌ها ISO کامل‌اند. فایل‌های pending/rejected فقط با توکن معتبر سرو شوند (فرانت با blob می‌گیرد).
 تا آماده شدن بک‌اند: همه سرویس‌ها اول به `mocks/` وصل‌اند، با یک فلگ `USE_MOCK=true` قابل سوییچ به API واقعی.
 
 ## ۸. دیزاین سیستم
 - رنگ: `bg-white` زمینه، `sky-100 / sky-200 / sky-500` تم آبی، متن `slate-800`.
+- **دارک مود (EXTRA):** تاگل ماه/خورشید در هدر + `medino-theme` در localStorage + اسکریپت ضدفلش در
+  `index.html`. تم تیره ملایم (slate-900/800) فقط سطوح سفید/متن/بوردر را عوض می‌کند؛ آبی برند
+  دست‌نخورده. اورلی روشن اسلایدر عمدا روشن می‌ماند (خوانایی متن).
 - کارت‌های ۶ بخش با آیکون + تعداد دروس.
 - اسلایدر هدر: ۳ اسلاید (معرفی مدینو / جدیدترین جزوات / راهنمای آپلود).
 - موبایل‌فرست، بعد دسکتاپ.
