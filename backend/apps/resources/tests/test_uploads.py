@@ -78,7 +78,6 @@ class UploadWorkflowTests(TestCase):
         response = self.client.get(reverse("resource-file", args=[resource.pk]))
         if response.status_code == 200:
             self.assertEqual(b"".join(response.streaming_content), PDF)
-            response.close()
         return response.status_code
 
     def test_student_upload_is_pending_and_server_controls_ownership_and_review(self):

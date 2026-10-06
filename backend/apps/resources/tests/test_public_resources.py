@@ -90,7 +90,6 @@ class PublicResourceTests(TestCase):
             response = self.client.get(reverse("resource-file", args=[approved.pk]))
             self.assertEqual(response.status_code, 200)
             self.assertEqual(b"".join(response.streaming_content), b"approved content")
-            response.close()
             self.assertEqual(
                 self.client.get(reverse("resource-file", args=[pending.pk])).status_code,
                 404,
