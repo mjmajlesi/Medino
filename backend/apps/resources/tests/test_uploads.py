@@ -1,15 +1,18 @@
 from io import BytesIO
 from tempfile import TemporaryDirectory
+from types import SimpleNamespace
 from zipfile import ZipFile
 
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from django.urls import reverse
+from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.academics.models import Lesson, Professor, Section
 from apps.resources.models import Resource
+from apps.resources.validators import validate_resource_file
 
 
 PDF = b"%PDF-1.7\n1 0 obj\n<<>>\nendobj\n"
@@ -157,6 +160,14 @@ class UploadWorkflowTests(TestCase):
             self.assertEqual(response.status_code, 400)
             self.assertIn("file", response.json())
         self.assertFalse(Resource.objects.exists())
+
+    def test_upload_limit_matches_frontend_fifty_mib_policy(self):
+        max_bytes = 50 * 1024 * 1024
+        oversized = SimpleNamespace(name="note.pdf", size=max_bytes + 1)
+        with override_settings(MAX_UPLOAD_SIZE=max_bytes):
+            with self.assertRaises(serializers.ValidationError) as error:
+                validate_resource_file(oversized, Resource.Type.NOTE)
+        self.assertIn(str(max_bytes), str(error.exception))
 
     def test_video_file_is_accepted(self):
         self.authenticate(self.student)
