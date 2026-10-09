@@ -16,11 +16,7 @@ export default function Header() {
     <header className="border-b border-brand-100 bg-white">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
         <Link to="/" className="flex items-center gap-2">
-          {/* لوگوی موقت تا رسیدن فایل اصلی کارفرما */}
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-500 text-xl font-bold text-white">
-            م
-          </span>
-          <span className="text-lg font-bold text-slate-900">مدینو</span>
+          <img src="/logo.jpg" alt="لوگوی مدینو" className="h-9 w-auto rounded-md" />
         </Link>
 
         <nav className="flex items-center gap-1 text-sm">

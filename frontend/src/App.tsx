@@ -1,20 +1,36 @@
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
+import type { ReactNode } from 'react';
 import { Route, Routes } from 'react-router-dom';
 import RequireAdmin from './components/Auth/RequireAdmin';
 import RequireAuth from './components/Auth/RequireAuth';
-import { useAuthStore } from './store/auth.store';
 import MainLayout from './components/Layout/MainLayout';
-import AdminDashboardPage from './pages/AdminDashboardPage';
-import AdminPendingPage from './pages/AdminPendingPage';
 import HomePage from './pages/HomePage';
-import LessonDetailPage from './pages/LessonDetailPage';
-import LessonsListPage from './pages/LessonsListPage';
-import LoginPage from './pages/LoginPage';
 import NotFoundPage from './pages/NotFoundPage';
-import ProfilePage from './pages/ProfilePage';
-import RegisterPage from './pages/RegisterPage';
-import SectionsPage from './pages/SectionsPage';
-import UploadPage from './pages/UploadPage';
+import { useAuthStore } from './store/auth.store';
+
+// Code-splitting: صفحه اصلی و 404 در باندل اول، بقیه lazy
+const SectionsPage = lazy(() => import('./pages/SectionsPage'));
+const LessonsListPage = lazy(() => import('./pages/LessonsListPage'));
+const LessonDetailPage = lazy(() => import('./pages/LessonDetailPage'));
+const UploadPage = lazy(() => import('./pages/UploadPage'));
+const LoginPage = lazy(() => import('./pages/LoginPage'));
+const RegisterPage = lazy(() => import('./pages/RegisterPage'));
+const ProfilePage = lazy(() => import('./pages/ProfilePage'));
+const AdminDashboardPage = lazy(() => import('./pages/AdminDashboardPage'));
+const AdminPendingPage = lazy(() => import('./pages/AdminPendingPage'));
+
+function PageFallback() {
+  return (
+    <div className="mx-auto max-w-6xl px-4 py-16" aria-busy="true">
+      <div className="mx-auto h-8 w-48 animate-pulse rounded-lg bg-brand-50" />
+      <div className="mt-4 h-40 animate-pulse rounded-2xl bg-brand-50" />
+    </div>
+  );
+}
+
+function lazyPage(node: ReactNode) {
+  return <Suspense fallback={<PageFallback />}>{node}</Suspense>;
+}
 
 export default function App() {
   const restore = useAuthStore((s) => s.restore);
@@ -26,16 +42,16 @@ export default function App() {
     <Routes>
       <Route element={<MainLayout />}>
         <Route index element={<HomePage />} />
-        <Route path="sections" element={<SectionsPage />} />
-        <Route path="lessons" element={<LessonsListPage />} />
-        <Route path="lessons/:id" element={<LessonDetailPage />} />
-        <Route path="upload" element={<RequireAuth><UploadPage /></RequireAuth>} />
-        <Route path="login" element={<LoginPage />} />
-        <Route path="register" element={<RegisterPage />} />
-        <Route path="profile" element={<RequireAuth><ProfilePage /></RequireAuth>} />
+        <Route path="sections" element={lazyPage(<SectionsPage />)} />
+        <Route path="lessons" element={lazyPage(<LessonsListPage />)} />
+        <Route path="lessons/:id" element={lazyPage(<LessonDetailPage />)} />
+        <Route path="upload" element={<RequireAuth>{lazyPage(<UploadPage />)}</RequireAuth>} />
+        <Route path="login" element={lazyPage(<LoginPage />)} />
+        <Route path="register" element={lazyPage(<RegisterPage />)} />
+        <Route path="profile" element={<RequireAuth>{lazyPage(<ProfilePage />)}</RequireAuth>} />
         {/* گارد نقش ادمین فعال است — اتصال کامل به API در TASK-16 */}
-        <Route path="admin" element={<RequireAuth><RequireAdmin><AdminDashboardPage /></RequireAdmin></RequireAuth>} />
-        <Route path="admin/pending" element={<RequireAuth><RequireAdmin><AdminPendingPage /></RequireAdmin></RequireAuth>} />
+        <Route path="admin" element={<RequireAuth><RequireAdmin>{lazyPage(<AdminDashboardPage />)}</RequireAdmin></RequireAuth>} />
+        <Route path="admin/pending" element={<RequireAuth><RequireAdmin>{lazyPage(<AdminPendingPage />)}</RequireAdmin></RequireAuth>} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>
