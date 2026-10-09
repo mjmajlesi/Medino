@@ -155,5 +155,19 @@ POST /api/auth/login/          // {student_no, password}
 - [ ] حجم آپلود: سقف نهایی بک‌اند ۵۰MB پیش‌فرض (قابل تنظیم با `MAX_UPLOAD_SIZE`) — فرانت هم ۵۰MB چک می‌کند.
 - [ ] لوگوی اصلی: در انتظار فایل کارفرما.
 
+## ۱۳. دیپلوی فرانت‌اند (TASK-18)
+```bash
+cd frontend
+npm install
+npm run build        # خروجی: dist/
+```
+- پیش‌نمایش لوکال: `npm run preview` (یا `npx serve dist`)
+- استاتیک‌هوست (Nginx/Netlify/Vercel/cPanel): محتویات `dist/` + fallback همه روت‌ها به `index.html`
+  (نمونه Nginx: `try_files $uri /index.html;`)
+- نمونه `.env` پروداکشن: `VITE_API_URL=https://<domain>/api` + `VITE_USE_MOCK=false`
+  (بعد از هر تغییر env دوباره build لازم است — مقادیر در بیلد embed می‌شوند)
+- بیلد route-level code-split است (چانک جدا برای هر صفحه)؛ عکس سنگین `bg_sec7.jpg`
+  (~۱.۷MB) کاندید فشرده‌سازی بعدی است.
+
 ---
 *این فایل مرجع حقیقت پروژه است. هر تغییری در اسکوپ باید اول اینجا ثبت شود.*
