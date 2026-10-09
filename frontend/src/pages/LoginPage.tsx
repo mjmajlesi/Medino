@@ -42,8 +42,10 @@ export default function LoginPage() {
   const onSubmit = async (data: Form) => {
     setServerError('');
     try {
-      await login(fa2en(data.studentNo), data.password);
-      navigate((location.state as { from?: string } | null)?.from ?? '/', { replace: true });
+      // ادمین بعد از ورود مستقیم به داشبورد مدیریت می‌رود (مگر مقصد مشخصی داشته باشد)
+      const from = (location.state as { from?: string } | null)?.from;
+      const loggedIn = await login(fa2en(data.studentNo), data.password);
+      navigate(from ?? (loggedIn.is_staff ? '/admin' : '/'), { replace: true });
     } catch (e) {
       const mapped = applyServerErrors(setError, (k) => {
         if (k === 'student_no') return 'studentNo';

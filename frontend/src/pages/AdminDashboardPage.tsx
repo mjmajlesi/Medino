@@ -12,13 +12,15 @@ export default function AdminDashboardPage() {
   const pendingQuery = useQuery({ queryKey: ['admin-pending'], queryFn: getPendingUploads });
 
   const s = statsQuery.data;
+  const statsFailed = statsQuery.isError;
+  const pendingFailed = pendingQuery.isError;
   const totalResources = (s?.notes ?? 0) + (s?.videos ?? 0) + (s?.samples ?? 0) + (s?.summaries ?? 0);
   const pending = pendingQuery.data?.length ?? 0;
 
   const cards = [
-    { label: 'درس', value: s?.lessons ?? lessonsQuery.data?.length ?? 0 },
-    { label: 'منبع منتشرشده', value: totalResources },
-    { label: 'در انتظار تایید', value: pending },
+    { label: 'درس', value: s?.lessons ?? lessonsQuery.data?.length ?? 0, unknown: statsFailed && !lessonsQuery.data },
+    { label: 'منبع منتشرشده', value: totalResources, unknown: statsFailed },
+    { label: 'در انتظار تایید', value: pending, unknown: pendingFailed },
   ];
 
   return (
@@ -29,7 +31,7 @@ export default function AdminDashboardPage() {
       <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
         {cards.map((c) => (
           <div key={c.label} className="rounded-2xl border border-brand-100 bg-white p-5 text-center">
-            <p className="text-3xl font-extrabold text-brand-700">{fa(c.value)}</p>
+            <p className="text-3xl font-extrabold text-brand-700">{c.unknown ? '—' : fa(c.value)}</p>
             <p className="mt-1 text-sm text-slate-500">{c.label}</p>
           </div>
         ))}
@@ -44,7 +46,11 @@ export default function AdminDashboardPage() {
           <span>
             <span className="block font-medium">بررسی آپلودها</span>
             <span className="text-xs text-slate-500">
-              {pending > 0 ? `${fa(pending)} مورد در انتظار تایید است` : 'صف تایید خالی است'}
+              {pendingFailed
+                ? 'خطا در بارگذاری صف — برای جزئیات باز کنید'
+                : pending > 0
+                  ? `${fa(pending)} مورد در انتظار تایید است`
+                  : 'صف تایید خالی است'}
             </span>
           </span>
         </Link>

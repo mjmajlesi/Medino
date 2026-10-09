@@ -17,7 +17,7 @@ function loadUser(): StudentUser | null {
 
 interface AuthState {
   user: StudentUser | null;
-  login: (studentNo: string, password: string) => Promise<void>;
+  login: (studentNo: string, password: string) => Promise<StudentUser>;
   register: (input: RegisterInput) => Promise<void>;
   loginAsAdmin: () => Promise<void>;
   logout: () => void;
@@ -35,6 +35,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     const { user } = await svcLogin(studentNo, password);
     localStorage.setItem(USER_KEY, JSON.stringify(user));
     set({ user });
+    return user;
   },
 
   register: async (input) => {

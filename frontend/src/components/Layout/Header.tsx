@@ -38,6 +38,14 @@ export default function Header() {
           <ThemeToggle />
           {user ? (
             <>
+              {user.is_staff && (
+                <Link
+                  to="/admin"
+                  className="rounded-md bg-amber-100 px-4 py-2 text-amber-700 transition-colors hover:bg-amber-200"
+                >
+                  مدیریت
+                </Link>
+              )}
               <Link
                 to="/profile"
                 className="ms-2 rounded-md bg-brand-50 px-4 py-2 text-brand-700 transition-colors hover:bg-brand-100"
