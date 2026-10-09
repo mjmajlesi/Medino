@@ -5,6 +5,8 @@ import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 import { USE_MOCK } from '../services/api';
 import { useAuthStore } from '../store/auth.store';
+import { fa2en } from '../utils/digits';
+import { applyServerErrors } from '../utils/serverErrors';
 
 const schema = z.object({
   studentNo: z
@@ -29,6 +31,7 @@ export default function LoginPage() {
   const {
     register,
     handleSubmit,
+    setError,
     formState: { errors, isSubmitting },
   } = useForm<Form>({ resolver: zodResolver(schema) });
 
@@ -39,10 +42,15 @@ export default function LoginPage() {
   const onSubmit = async (data: Form) => {
     setServerError('');
     try {
-      await login(data.studentNo, data.password);
+      await login(fa2en(data.studentNo), data.password);
       navigate((location.state as { from?: string } | null)?.from ?? '/', { replace: true });
-    } catch {
-      setServerError('ورود ناموفق بود. مشخصات را بررسی کنید.');
+    } catch (e) {
+      const mapped = applyServerErrors(setError, (k) => {
+        if (k === 'student_no') return 'studentNo';
+        if (k === 'password') return 'password';
+        return null; // detail و غیره -> پیام عمومی
+      }, e);
+      if (!mapped) setServerError('ورود ناموفق بود. مشخصات را بررسی کنید.');
     }
   };
 

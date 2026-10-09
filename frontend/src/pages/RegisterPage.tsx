@@ -4,6 +4,8 @@ import { useForm } from 'react-hook-form';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 import { useAuthStore } from '../store/auth.store';
+import { fa2en } from '../utils/digits';
+import { applyServerErrors } from '../utils/serverErrors';
 
 const schema = z
   .object({
@@ -12,7 +14,11 @@ const schema = z
     studentNo: z.string().regex(/^\d{7,12}$/, 'شماره دانشجویی باید ۷ تا ۱۲ رقم باشد'),
     entryYear: z.string().regex(/^\d{4}$/, 'سال ورودی ۴ رقم است (مثلا ۱۴۰۳)'),
     currentTerm: z.string().min(1, 'ترم فعلی را انتخاب کن'),
-    password: z.string().min(6, 'رمز عبور حداقل ۶ کاراکتر است'),
+    // هم‌راستا با ولیدیتورهای جنگو: حداقل ۸ کاراکتر و نه کاملا عددی
+    password: z
+      .string()
+      .min(8, 'رمز عبور حداقل ۸ کاراکتر است')
+      .regex(/^(?!\d+$)/, 'رمز عبور نباید فقط عدد باشد'),
     confirmPassword: z.string(),
   })
   .refine((d) => d.password === d.confirmPassword, {
@@ -52,6 +58,7 @@ export default function RegisterPage() {
   const {
     register,
     handleSubmit,
+    setError,
     formState: { errors, isSubmitting },
   } = useForm<Form>({ resolver: zodResolver(schema) });
 
@@ -65,14 +72,25 @@ export default function RegisterPage() {
       await registerUser({
         first_name: data.firstName,
         last_name: data.lastName,
-        student_no: data.studentNo,
-        entry_year: data.entryYear,
+        student_no: fa2en(data.studentNo),
+        entry_year: fa2en(data.entryYear),
         current_term: data.currentTerm,
         password: data.password,
       });
       navigate('/', { replace: true });
-    } catch {
-      setServerError('ثبت‌نام ناموفق بود. دوباره تلاش کنید.');
+    } catch (e) {
+      const mapped = applyServerErrors(setError, (k) => {
+        switch (k) {
+          case 'first_name': return 'firstName';
+          case 'last_name': return 'lastName';
+          case 'student_no': return 'studentNo';
+          case 'entry_year': return 'entryYear';
+          case 'current_term': return 'currentTerm';
+          case 'password': return 'password';
+          default: return null;
+        }
+      }, e);
+      if (!mapped) setServerError('ثبت‌نام ناموفق بود. دوباره تلاش کنید.');
     }
   };
 
