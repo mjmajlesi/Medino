@@ -1,0 +1,16 @@
+.env
+.env.*
+.venv/
+venv/
+__pycache__/
+*.pyc
+db.sqlite3
+media/
+staticfiles/
+.git/
+.pytest_cache/
+.coverage
+htmlcov/
+*.log
+Dockerfile
+docker-compose.yml

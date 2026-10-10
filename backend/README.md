@@ -5,7 +5,7 @@ Medino is a Django REST API using PostgreSQL. SQLite is no longer a runtime or t
 ## Requirements
 
 - Python 3.12 or newer supported by the pinned Django release
-- PostgreSQL 16 or newer; Docker Compose is optional for the local database
+- PostgreSQL 18 for the documented container stack; a compatible local PostgreSQL server also works
 - A locally generated `SECRET_KEY` and a PostgreSQL user that can create a test database
 
 ## Setup
@@ -22,19 +22,7 @@ chmod 600 .env
 
 Edit `.env` before starting anything. Generate a unique secret, for example with `python -c 'from secrets import token_urlsafe; print(token_urlsafe(48))'`, and replace the example `SECRET_KEY`. Replace `POSTGRES_PASSWORD` with a unique local password. The backend reads `.env` without overriding variables already present in the process environment. Never commit or share `.env`.
 
-For the included PostgreSQL 16 development database, run these commands from `backend/` after editing `.env`:
-
-```bash
-docker compose up -d --wait
-docker compose ps
-docker compose exec postgres pg_isready -U medino -d medino
-```
-
-If you changed `POSTGRES_USER` or `POSTGRES_DB`, pass those values to `pg_isready`. The database listens only on `127.0.0.1` at `POSTGRES_PORT` and stores data in a named Docker volume. To stop it without deleting the data:
-
-```bash
-docker compose down
-```
+The complete PostgreSQL 18, Django, and React Compose stack is documented in the [root README](../README.md). For a host-run backend, connect `.env` to a PostgreSQL server reachable from the host. The container stack's PostgreSQL service has no host port by default, and its `POSTGRES_HOST=postgres` value resolves only inside Compose.
 
 To initialize and run the API:
 
@@ -55,6 +43,7 @@ python manage.py runserver
 | `DEBUG` | Explicit `1`, `true`, `yes`, or `on` enables debug; other values disable it. |
 | `ALLOWED_HOSTS` | Comma-separated API hostnames without scheme or port; no wildcard default. |
 | `CORS_ALLOWED_ORIGINS` | Comma-separated exact client origins, each with scheme and port when applicable; no allow-all default. |
+| `CSRF_TRUSTED_ORIGINS` | Comma-separated exact origins allowed for Django Admin CSRF checks behind a trusted proxy. |
 | `POSTGRES_DB` | Required PostgreSQL database name. |
 | `POSTGRES_USER` | Required PostgreSQL user. |
 | `POSTGRES_PASSWORD` | Required PostgreSQL password. |
@@ -87,6 +76,8 @@ python manage.py test
 ## API
 
 All paths below are relative to the API host.
+
+Django Admin is served at `/django-admin/`; the React application owns `/admin`.
 
 | Method | Path | Auth | Purpose |
 | --- | --- | --- | --- |

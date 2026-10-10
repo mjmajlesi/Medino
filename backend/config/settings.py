@@ -19,7 +19,7 @@ def load_local_env():
         "POSTGRES_DB", "POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_HOST", "POSTGRES_PORT",
         "SECURE_SSL_REDIRECT", "SESSION_COOKIE_SECURE", "CSRF_COOKIE_SECURE",
         "SECURE_HSTS_SECONDS", "SECURE_HSTS_INCLUDE_SUBDOMAINS", "SECURE_HSTS_PRELOAD",
-        "SECURE_PROXY_SSL_HEADER",
+        "SECURE_PROXY_SSL_HEADER", "CSRF_TRUSTED_ORIGINS",
     }
     for line in env_file.read_text(encoding="utf-8").splitlines():
         line = line.strip()
@@ -73,6 +73,7 @@ if not DEBUG and SECRET_KEY == "replace-with-a-long-random-value":
     raise ImproperlyConfigured("Replace the example SECRET_KEY before deployment.")
 ALLOWED_HOSTS = env_list("ALLOWED_HOSTS")
 CORS_ALLOWED_ORIGINS = env_list("CORS_ALLOWED_ORIGINS")
+CSRF_TRUSTED_ORIGINS = env_list("CSRF_TRUSTED_ORIGINS")
 
 SECURE_SSL_REDIRECT = env_bool("SECURE_SSL_REDIRECT")
 SESSION_COOKIE_SECURE = env_bool("SESSION_COOKIE_SECURE")
@@ -171,7 +172,7 @@ TIME_ZONE = "Asia/Tehran"
 USE_I18N = True
 USE_TZ = True
 
-STATIC_URL = "static/"
+STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"

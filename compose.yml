@@ -1,0 +1,93 @@
+services:
+  postgres:
+    image: postgres:18
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB in .env.docker}
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in .env.docker}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env.docker}
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    networks:
+      - data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+    restart: unless-stopped
+
+  backend-init:
+    image: medino-backend:local
+    build: ./backend
+    env_file: .env.docker
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+    command: ["sh", "-ec", "python manage.py migrate --noinput && python manage.py collectstatic --noinput"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - static_data:/app/staticfiles
+    networks:
+      - data
+    restart: "no"
+
+  backend:
+    image: medino-backend:local
+    build: ./backend
+    env_file: .env.docker
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      backend-init:
+        condition: service_completed_successfully
+    volumes:
+      - media_data:/app/media
+    networks:
+      - edge
+      - data
+    healthcheck:
+      test: ["CMD", "python", "-m", "config.healthcheck"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: /api
+        VITE_USE_MOCK: "false"
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${APP_BIND_HOST:-127.0.0.1}:${APP_PORT:-8080}:8080"
+    volumes:
+      - static_data:/srv/django-static:ro
+    networks:
+      - edge
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
+    restart: unless-stopped
+
+networks:
+  edge:
+  data:
+    internal: true
+
+volumes:
+  postgres_data:
+  media_data:
+  static_data:
