@@ -77,7 +77,24 @@ docker compose --env-file .env.docker down
 
 Nginx permits request bodies up to 55 MiB so a 50 MiB file plus multipart overhead can reach Django. Django's `MAX_UPLOAD_SIZE` remains the authoritative file limit. Nginx does not expose `/media/`; approved files are public through the Django file endpoint, while pending/rejected files require the owner or staff JWT. External URLs are controlled by their external host and cannot be made private by this stack.
 
-The supplied stack serves HTTP on loopback for local use or for a trusted host-level TLS gateway. For a real public deployment, configure HTTPS termination, secure cookies, redirects, HSTS, a trusted forwarded-protocol chain, public hosts, CSRF origins, backups, and monitoring. Nginx currently sends its own `$scheme` to Django, which is correct for direct HTTP use; if TLS terminates **before** this container, the deployment must configure that trusted proxy chain so Django receives the verified HTTPS scheme. Do not trust client-supplied `X-Forwarded-Proto` on a publicly exposed HTTP port. Keep the Compose port bound to loopback until TLS is ready.
+The supplied stack serves HTTP on loopback for local use or behind a trusted host-level TLS gateway. For public HTTPS, the host Nginx must overwrite `X-Forwarded-Proto` with its own `$scheme` before forwarding to the loopback-only Docker port. For example, inside a host Nginx TLS server block (with certificates configured separately):
+
+```nginx
+server {
+    listen 443 ssl;
+    server_name example.com; # Replace with the deployed hostname.
+
+    location / {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+The Docker Nginx preserves a trusted `http` or `https` value and falls back to its own scheme when the header is absent. Django's existing `SECURE_PROXY_SSL_HEADER=HTTP_X_FORWARDED_PROTO,https` setting then recognizes the original HTTPS request for redirects, CSRF checks, and secure request handling. Do not pass a browser-supplied forwarded-protocol header through the host proxy or expose the Docker port publicly; the stack binds it to `127.0.0.1` by default. Set the public `ALLOWED_HOSTS` and `CSRF_TRUSTED_ORIGINS`, enable secure cookies and redirects, and configure HSTS, backups, and monitoring for production.
 
 ## Backups
 
