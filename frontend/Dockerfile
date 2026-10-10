@@ -16,7 +16,9 @@ FROM nginx:1.30.5-alpine3.24
 COPY nginx.conf /etc/nginx/nginx.conf
 COPY --from=build /app/dist/ /usr/share/nginx/html/
 RUN mkdir -p /tmp/nginx-client-body /tmp/nginx-proxy-temp \
-    && chown -R nginx:nginx /tmp/nginx-client-body /tmp/nginx-proxy-temp
+    /tmp/nginx-fastcgi-temp /tmp/nginx-uwsgi-temp /tmp/nginx-scgi-temp \
+    && chown nginx:nginx /tmp/nginx-client-body /tmp/nginx-proxy-temp \
+    /tmp/nginx-fastcgi-temp /tmp/nginx-uwsgi-temp /tmp/nginx-scgi-temp
 
 USER nginx
 EXPOSE 8080
