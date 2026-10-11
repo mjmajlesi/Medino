@@ -20,3 +20,11 @@
   font-size: 11px;
   font-weight: 700;
 }
+
+/* موبایل: فلش‌ها (هدف لمسی کوچک) مخفی، دات‌ها کافی‌اند */
+@media (max-width: 639px) {
+  .hero-swiper .swiper-button-next,
+  .hero-swiper .swiper-button-prev {
+    display: none;
+  }
+}
