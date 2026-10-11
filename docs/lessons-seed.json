@@ -1,0 +1,462 @@
+﻿[
+    {
+        "section_slug":  "basic",
+        "title":  "آناتومی",
+        "professor":  "دکتر رضایی",
+        "term":  1,
+        "code":  "BAS-101"
+    },
+    {
+        "section_slug":  "basic",
+        "title":  "بیوشیمی",
+        "professor":  "دکتر کریمی",
+        "term":  1,
+        "code":  "BAS-102"
+    },
+    {
+        "section_slug":  "basic",
+        "title":  "فیزیولوژی",
+        "professor":  "دکتر احمدی",
+        "term":  2,
+        "code":  "BAS-201"
+    },
+    {
+        "section_slug":  "basic",
+        "title":  "آسیب‌شناسی عمومی",
+        "professor":  "دکتر حسینی",
+        "term":  4,
+        "code":  "PHY-402"
+    },
+    {
+        "section_slug":  "basic",
+        "title":  "بافت‌شناسی",
+        "professor":  "دکتر شریفی",
+        "term":  1
+    },
+    {
+        "section_slug":  "basic",
+        "title":  "بافت‌شناسی",
+        "professor":  "دکتر قاسمی",
+        "term":  1
+    },
+    {
+        "section_slug":  "basic",
+        "title":  "زیست‌شناسی سلولی و مولکولی",
+        "professor":  "دکتر نجفی",
+        "term":  8
+    },
+    {
+        "section_slug":  "basic",
+        "title":  "ژنتیک پزشکی",
+        "professor":  "دکتر حیدری",
+        "term":  8
+    },
+    {
+        "section_slug":  "basic",
+        "title":  "فیزیک پزشکی",
+        "professor":  "دکتر امینی",
+        "term":  9
+    },
+    {
+        "section_slug":  "basic",
+        "title":  "بیوفیزیک",
+        "professor":  "دکتر شریفی",
+        "term":  4
+    },
+    {
+        "section_slug":  "basic",
+        "title":  "میکروب‌شناسی",
+        "professor":  "دکتر کاظمی",
+        "term":  3
+    },
+    {
+        "section_slug":  "basic",
+        "title":  "باکتری‌شناسی",
+        "professor":  "دکتر امینی",
+        "term":  9
+    },
+    {
+        "section_slug":  "basic",
+        "title":  "ویروس‌شناسی",
+        "professor":  "دکتر شریفی",
+        "term":  8
+    },
+    {
+        "section_slug":  "basic",
+        "title":  "انگل‌شناسی",
+        "professor":  "دکتر فرهمند",
+        "term":  3
+    },
+    {
+        "section_slug":  "basic",
+        "title":  "قارچ‌شناسی",
+        "professor":  "دکتر حیدری",
+        "term":  2
+    },
+    {
+        "section_slug":  "basic",
+        "title":  "ایمنی‌شناسی",
+        "professor":  "دکتر حیدری",
+        "term":  8
+    },
+    {
+        "section_slug":  "basic",
+        "title":  "آسیب‌شناسی اختصاصی",
+        "professor":  "دکتر سعیدی",
+        "term":  5
+    },
+    {
+        "section_slug":  "basic",
+        "title":  "فارماکولوژی",
+        "professor":  "دکتر شهیدی",
+        "term":  3
+    },
+    {
+        "section_slug":  "basic",
+        "title":  "اپیدمیولوژی",
+        "professor":  "دکتر سعیدی",
+        "term":  2
+    },
+    {
+        "section_slug":  "basic",
+        "title":  "آمار زیستی",
+        "professor":  "دکتر قاسمی",
+        "term":  9
+    },
+    {
+        "section_slug":  "basic",
+        "title":  "بهداشت عمومی",
+        "professor":  "دکتر شهیدی",
+        "term":  1
+    },
+    {
+        "section_slug":  "basic",
+        "title":  "تغذیه",
+        "professor":  "دکتر نجفی",
+        "term":  7
+    },
+    {
+        "section_slug":  "basic",
+        "title":  "زبان تخصصی پزشکی",
+        "professor":  "دکتر باقری",
+        "term":  8
+    },
+    {
+        "section_slug":  "basic",
+        "title":  "اصطلاحات پزشکی",
+        "professor":  "دکتر کاظمی",
+        "term":  3
+    },
+    {
+        "section_slug":  "physio",
+        "title":  "فیزیوپاتولوژی قلب و عروق",
+        "professor":  "دکتر محمدی",
+        "term":  4,
+        "code":  "PHY-401"
+    },
+    {
+        "section_slug":  "physio",
+        "title":  "سمیولوژی",
+        "professor":  "دکتر نادری",
+        "term":  5,
+        "code":  "KAR-501"
+    },
+    {
+        "section_slug":  "physio",
+        "title":  "فیزیوپاتولوژی تنفس",
+        "professor":  "دکتر حیدری",
+        "term":  1
+    },
+    {
+        "section_slug":  "physio",
+        "title":  "فیزیوپاتولوژی کلیه",
+        "professor":  "دکتر شریفی",
+        "term":  9
+    },
+    {
+        "section_slug":  "physio",
+        "title":  "فیزیوپاتولوژی گوارش",
+        "professor":  "دکتر توکلی",
+        "term":  2
+    },
+    {
+        "section_slug":  "physio",
+        "title":  "فیزیوپاتولوژی غدد درون‌ریز",
+        "professor":  "دکتر جعفری",
+        "term":  1
+    },
+    {
+        "section_slug":  "physio",
+        "title":  "فیزیوپاتولوژی خون",
+        "professor":  "دکتر مرادی",
+        "term":  1
+    },
+    {
+        "section_slug":  "physio",
+        "title":  "فیزیوپاتولوژی روماتولوژی",
+        "professor":  "دکتر سعیدی",
+        "term":  4
+    },
+    {
+        "section_slug":  "physio",
+        "title":  "فیزیوپاتولوژی اعصاب",
+        "professor":  "دکتر نجفی",
+        "term":  4
+    },
+    {
+        "section_slug":  "physio",
+        "title":  "فیزیوپاتولوژی روان",
+        "professor":  "دکتر شریفی",
+        "term":  1
+    },
+    {
+        "section_slug":  "physio",
+        "title":  "فارماکولوژی",
+        "professor":  "دکتر فرهمند",
+        "term":  8
+    },
+    {
+        "section_slug":  "physio",
+        "title":  "آسیب‌شناسی بالینی",
+        "professor":  "دکتر شریفی",
+        "term":  6
+    },
+    {
+        "section_slug":  "physio",
+        "title":  "مهارت‌های بالینی",
+        "professor":  "دکتر سعیدی",
+        "term":  8
+    },
+    {
+        "section_slug":  "karamozi",
+        "title":  "کودکان",
+        "professor":  "دکتر فرهادی",
+        "term":  9,
+        "code":  "STG-901"
+    },
+    {
+        "section_slug":  "karamozi",
+        "title":  "زنان و زایمان",
+        "professor":  "دکتر عزیزی",
+        "term":  9,
+        "code":  "STG-902"
+    },
+    {
+        "section_slug":  "karamozi",
+        "title":  "داخلی",
+        "professor":  "دکتر توکلی",
+        "term":  4
+    },
+    {
+        "section_slug":  "karamozi",
+        "title":  "جراحی عمومی",
+        "professor":  "دکتر باقری",
+        "term":  9
+    },
+    {
+        "section_slug":  "karamozi",
+        "title":  "قلب و عروق",
+        "professor":  "دکتر رستمی",
+        "term":  4
+    },
+    {
+        "section_slug":  "karamozi",
+        "title":  "بیماری‌های عفونی",
+        "professor":  "دکتر قاسمی",
+        "term":  5
+    },
+    {
+        "section_slug":  "karamozi",
+        "title":  "مغز و اعصاب",
+        "professor":  "دکتر مرادی",
+        "term":  8
+    },
+    {
+        "section_slug":  "karamozi",
+        "title":  "ارتوپدی",
+        "professor":  "دکتر قاسمی",
+        "term":  1
+    },
+    {
+        "section_slug":  "karamozi",
+        "title":  "اورولوژی",
+        "professor":  "دکتر قاسمی",
+        "term":  2
+    },
+    {
+        "section_slug":  "karamozi",
+        "title":  "چشم‌پزشکی",
+        "professor":  "دکتر حیدری",
+        "term":  8
+    },
+    {
+        "section_slug":  "karamozi",
+        "title":  "گوش، حلق و بینی",
+        "professor":  "دکتر مرادی",
+        "term":  5
+    },
+    {
+        "section_slug":  "karamozi",
+        "title":  "پوست",
+        "professor":  "دکتر عسگری",
+        "term":  7
+    },
+    {
+        "section_slug":  "karamozi",
+        "title":  "روان‌پزشکی",
+        "professor":  "دکتر شهیدی",
+        "term":  9
+    },
+    {
+        "section_slug":  "karamozi",
+        "title":  "رادیولوژی",
+        "professor":  "دکتر شهیدی",
+        "term":  2
+    },
+    {
+        "section_slug":  "karamozi",
+        "title":  "بیهوشی",
+        "professor":  "دکتر امینی",
+        "term":  5
+    },
+    {
+        "section_slug":  "karamozi",
+        "title":  "پزشکی قانونی",
+        "professor":  "دکتر قاسمی",
+        "term":  6
+    },
+    {
+        "section_slug":  "karamozi",
+        "title":  "بهداشت",
+        "professor":  "دکتر قاسمی",
+        "term":  4
+    },
+    {
+        "section_slug":  "karamozi",
+        "title":  "پزشکی اورژانس",
+        "professor":  "دکتر جعفری",
+        "term":  9
+    },
+    {
+        "section_slug":  "karvarzi",
+        "title":  "داخلی",
+        "professor":  "دکتر صادقی",
+        "term":  7,
+        "code":  "KAV-701"
+    },
+    {
+        "section_slug":  "karvarzi",
+        "title":  "جراحی عمومی",
+        "professor":  "دکتر موسوی",
+        "term":  7,
+        "code":  "KAV-702"
+    },
+    {
+        "section_slug":  "karvarzi",
+        "title":  "کودکان",
+        "professor":  "دکتر فرهمند",
+        "term":  5
+    },
+    {
+        "section_slug":  "karvarzi",
+        "title":  "زنان و زایمان",
+        "professor":  "دکتر توکلی",
+        "term":  1
+    },
+    {
+        "section_slug":  "karvarzi",
+        "title":  "اورژانس",
+        "professor":  "دکتر جعفری",
+        "term":  2
+    },
+    {
+        "section_slug":  "karvarzi",
+        "title":  "روان‌پزشکی",
+        "professor":  "دکتر حیدری",
+        "term":  2
+    },
+    {
+        "section_slug":  "karvarzi",
+        "title":  "بیماری‌های عفونی",
+        "professor":  "دکتر مرادی",
+        "term":  7
+    },
+    {
+        "section_slug":  "karvarzi",
+        "title":  "قلب و عروق",
+        "professor":  "دکتر هاشمی",
+        "term":  2
+    },
+    {
+        "section_slug":  "karvarzi",
+        "title":  "مغز و اعصاب",
+        "professor":  "دکتر حیدری",
+        "term":  5
+    },
+    {
+        "section_slug":  "karvarzi",
+        "title":  "ارتوپدی",
+        "professor":  "دکتر توکلی",
+        "term":  7
+    },
+    {
+        "section_slug":  "karvarzi",
+        "title":  "اورولوژی",
+        "professor":  "دکتر شهیدی",
+        "term":  2
+    },
+    {
+        "section_slug":  "karvarzi",
+        "title":  "چشم‌پزشکی",
+        "professor":  "دکتر جعفری",
+        "term":  1
+    },
+    {
+        "section_slug":  "karvarzi",
+        "title":  "گوش، حلق و بینی",
+        "professor":  "دکتر حیدری",
+        "term":  1
+    },
+    {
+        "section_slug":  "karvarzi",
+        "title":  "پوست",
+        "professor":  "دکتر توکلی",
+        "term":  4
+    },
+    {
+        "section_slug":  "karvarzi",
+        "title":  "رادیولوژی",
+        "professor":  "دکتر مرادی",
+        "term":  4
+    },
+    {
+        "section_slug":  "karvarzi",
+        "title":  "بیهوشی",
+        "professor":  "دکتر امینی",
+        "term":  1
+    },
+    {
+        "section_slug":  "karvarzi",
+        "title":  "پزشکی قانونی",
+        "professor":  "دکتر کاظمی",
+        "term":  8
+    },
+    {
+        "section_slug":  "karvarzi",
+        "title":  "پزشکی اجتماعی",
+        "professor":  "دکتر توکلی",
+        "term":  7
+    },
+    {
+        "section_slug":  "general",
+        "title":  "معارف و اندیشه اسلامی",
+        "professor":  "دکتر شریفی",
+        "term":  7
+    },
+    {
+        "section_slug":  "general",
+        "title":  "زبان و ادبیات",
+        "professor":  "دکتر سعیدی",
+        "term":  7
+    }
+]
