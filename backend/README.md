@@ -88,7 +88,7 @@ Django Admin is served at `/django-admin/`; the React application owns `/admin`.
 | GET | `/api/auth/me/` | Access token | Return the current user, including `is_staff`. |
 | GET | `/api/sections/` | Public | List academic sections. |
 | GET | `/api/lessons/` | Public | List, filter, search, and sort lessons. |
-| POST | `/api/lessons/` | Staff access token | Create a lesson from an existing section slug and professor name. |
+| POST | `/api/lessons/` | Staff access token | Create a lesson from an existing section slug and an existing or new professor name. |
 | GET | `/api/lessons/{id}/` | Public | Lesson and approved resources; does not increment views. |
 | PUT | `/api/lessons/{id}/` | Staff access token | Replace editable lesson fields. |
 | DELETE | `/api/lessons/{id}/` | Staff access token | Delete a lesson and its resources. |
@@ -101,7 +101,7 @@ Django Admin is served at `/django-admin/`; the React application owns `/admin`.
 
 The lesson list accepts `section`, `search`, `professor`, `term`, `type`, `ordering=-created_at`, and `ordering=-views`. Lesson views are stored values. Auth responses include `is_staff`; student registration cannot grant staff status. IDs in API responses are strings and dates use ISO 8601.
 
-Lesson writes accept `section_slug`, `title`, `professor`, `term`, and optional `code`; the section and professor must already exist. POST and PUT return the same lesson fields as the public list. Deleting a lesson also deletes all its Resource rows. Uploaded files are removed through Django storage after the database transaction commits; unrelated or still-referenced files are retained. Missing files do not block deletion. Unexpected storage failures are logged after commit, so the database deletion still returns HTTP 204 and an orphaned file may require operator cleanup.
+Lesson writes accept `section_slug`, `title`, `professor`, `term`, and optional `code`; the section must already exist. POST and PUT trim the professor name, reuse a single existing match, or create a new professor. Ambiguous names are rejected. POST and PUT return the same lesson fields as the public list. Deleting a lesson also deletes all its Resource rows. Uploaded files are removed through Django storage after the database transaction commits; unrelated or still-referenced files are retained. Missing files do not block deletion. Unexpected storage failures are logged after commit, so the database deletion still returns HTTP 204 and an orphaned file may require operator cleanup.
 
 ## Authentication and upload workflow
 

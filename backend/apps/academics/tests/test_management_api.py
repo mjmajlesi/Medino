@@ -4,14 +4,14 @@ from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.academics.models import Lesson, Professor, Section
-from apps.academics.serializers import LessonSerializer
+from apps.academics.serializers import LessonSerializer, LessonWriteSerializer
 from apps.resources.models import Resource
 
 
@@ -94,6 +94,33 @@ class LessonManagementAPITests(TestCase):
         self.assertEqual(response.data["views"], 0)
         self.assertIsInstance(response.data["created_at"], str)
 
+    def test_staff_create_with_new_professor_normalizes_and_reuses_name(self):
+        self.authenticate(self.staff)
+        payload = {
+            "section_slug": "basic",
+            "title": "تست",
+            "professor": "  دکتر تست  ",
+            "term": 7,
+            "code": "ttt-001",
+        }
+        response = self.client.post(self.list_url, payload, format="json")
+        self.assertEqual(response.status_code, 201, response.data)
+        professor = Professor.objects.get(name="دکتر تست")
+        lesson = Lesson.objects.get(pk=response.data["id"])
+        self.assertEqual(lesson.professor, professor)
+        self.assertEqual(response.data, LessonSerializer(lesson).data)
+        self.assertEqual(response.data["professor"], "دکتر تست")
+        self.assertEqual(response.data["term"], 7)
+
+        response = self.client.post(
+            self.list_url,
+            {**payload, "title": "درس دوم", "professor": "دکتر تست"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 201, response.data)
+        self.assertEqual(Professor.objects.filter(name="دکتر تست").count(), 1)
+        self.assertEqual(Lesson.objects.get(pk=response.data["id"]).professor, professor)
+
     def test_superuser_can_create(self):
         self.authenticate(self.superuser)
         response = self.client.post(self.list_url, self.payload, format="json")
@@ -107,11 +134,11 @@ class LessonManagementAPITests(TestCase):
         self.assertNotIn("code", response.data)
         self.assertEqual(Lesson.objects.get(title="Anatomy").code, "")
 
-    def test_create_rejects_invalid_section_professor_title_term_and_code(self):
+    def test_create_rejects_invalid_section_title_term_and_code(self):
         self.authenticate(self.staff)
         cases = (
             ("section_slug", "missing"),
-            ("professor", "Dr. Missing"),
+            ("professor", "   "),
             ("title", "   "),
             ("term", 0),
             ("term", "not-a-term"),
@@ -126,6 +153,25 @@ class LessonManagementAPITests(TestCase):
                 self.assertEqual(response.status_code, 400, response.data)
                 self.assertIn(field, response.data)
         self.assertEqual(Lesson.objects.count(), 2)
+
+    def test_invalid_section_does_not_create_new_professor(self):
+        self.authenticate(self.staff)
+        response = self.client.post(
+            self.list_url,
+            {**self.payload, "section_slug": "missing", "professor": "Dr. New"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400, response.data)
+        self.assertIn("section_slug", response.data)
+        self.assertFalse(Professor.objects.filter(name="Dr. New").exists())
+
+    def test_lesson_save_failure_rolls_back_new_professor(self):
+        serializer = LessonWriteSerializer(data={**self.payload, "professor": "Dr. New"})
+        serializer.is_valid(raise_exception=True)
+        with patch("apps.academics.serializers.Lesson.objects.create", side_effect=IntegrityError):
+            with self.assertRaises(IntegrityError):
+                serializer.save()
+        self.assertFalse(Professor.objects.filter(name="Dr. New").exists())
 
     def test_create_trims_names_and_rejects_ambiguous_professor(self):
         self.authenticate(self.staff)
@@ -180,6 +226,54 @@ class LessonManagementAPITests(TestCase):
         self.assertEqual(self.lesson.views, 7)
         self.assertEqual(self.lesson.created_at, created_at)
 
+    def test_staff_put_creates_new_professor_and_reuses_existing_one(self):
+        self.authenticate(self.staff)
+        payload = {**self.payload, "professor": "  Dr. New  "}
+        response = self.client.put(self.detail_url, payload, format="json")
+        self.assertEqual(response.status_code, 200, response.data)
+        professor = Professor.objects.get(name="Dr. New")
+        self.lesson.refresh_from_db()
+        self.assertEqual(self.lesson.professor, professor)
+        self.assertEqual(response.data["professor"], "Dr. New")
+
+        response = self.client.put(
+            self.detail_url, {**payload, "professor": "Dr. Other"}, format="json"
+        )
+        self.assertEqual(response.status_code, 200, response.data)
+        self.lesson.refresh_from_db()
+        self.assertEqual(self.lesson.professor, self.other_professor)
+        self.assertEqual(Professor.objects.filter(name="Dr. Other").count(), 1)
+
+    def test_put_rejects_ambiguous_professor_without_changing_lesson(self):
+        Professor.objects.create(name="Dr. Other")
+        self.authenticate(self.staff)
+        response = self.client.put(
+            self.detail_url,
+            {**self.payload, "professor": "Dr. Other"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400, response.data)
+        self.assertIn("professor", response.data)
+        self.lesson.refresh_from_db()
+        self.assertEqual(self.lesson.professor, self.professor)
+
+    def test_put_rejects_duplicate_lesson(self):
+        self.authenticate(self.staff)
+        response = self.client.put(
+            self.detail_url,
+            {
+                "section_slug": "clinical",
+                "title": "Other Lesson",
+                "professor": "Dr. Other",
+                "term": 3,
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400, response.data)
+        self.assertIn("non_field_errors", response.data)
+        self.lesson.refresh_from_db()
+        self.assertEqual(self.lesson.title, "Existing Anatomy")
+
     def test_superuser_can_put_and_delete(self):
         self.authenticate(self.superuser)
         response = self.client.put(self.detail_url, self.payload, format="json")
@@ -201,11 +295,11 @@ class LessonManagementAPITests(TestCase):
         self.assertIn("professor", response.data)
         self.assertIn("term", response.data)
 
-    def test_put_rejects_invalid_relations_and_term(self):
+    def test_put_rejects_invalid_section_blank_professor_and_term(self):
         self.authenticate(self.staff)
         for field, value in (
             ("section_slug", "missing"),
-            ("professor", "Dr. Missing"),
+            ("professor", "   "),
             ("term", -1),
         ):
             with self.subTest(field=field):

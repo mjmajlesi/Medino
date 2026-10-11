@@ -1,3 +1,4 @@
+from django.db import connection, transaction
 from rest_framework import serializers
 
 from .models import Lesson, Professor, Section
@@ -42,24 +43,53 @@ class LessonWriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Lesson
         fields = ("section_slug", "title", "professor", "term", "code")
-
-    def validate_professor(self, name):
-        matches = list(Professor.objects.filter(name=name).order_by("pk")[:2])
-        if not matches:
-            raise serializers.ValidationError("Professor does not exist.")
-        if len(matches) > 1:
-            raise serializers.ValidationError("Professor name is ambiguous.")
-        return matches[0]
+        # The professor is resolved after field validation, so check the lesson
+        # uniqueness constraint once its database row is known.
+        validators = []
 
     def validate_term(self, value):
         if value < 1:
             raise serializers.ValidationError("Term must be positive.")
         return value
 
+    @staticmethod
+    def _resolve_professor(name):
+        # Name is not unique in the current schema. Serialize lookups for the
+        # same name so concurrent writes cannot create duplicate professors.
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT pg_advisory_xact_lock(73921, hashtext(%s))", [name])
+        matches = list(Professor.objects.filter(name=name).order_by("pk")[:2])
+        if len(matches) > 1:
+            raise serializers.ValidationError({"professor": ["Professor name is ambiguous."]})
+        return matches[0] if matches else Professor.objects.create(name=name)
+
+    def _prepare_lesson(self, validated_data, instance=None):
+        validated_data["professor"] = self._resolve_professor(validated_data["professor"])
+        duplicates = Lesson.objects.filter(
+            section=validated_data["section"],
+            title=validated_data["title"],
+            professor=validated_data["professor"],
+            term=validated_data["term"],
+        )
+        if instance is not None:
+            duplicates = duplicates.exclude(pk=instance.pk)
+        if duplicates.exists():
+            raise serializers.ValidationError(
+                {"non_field_errors": [
+                    "The fields section_slug, title, professor, term must make a unique set."
+                ]}
+            )
+        return validated_data
+
+    @transaction.atomic
+    def create(self, validated_data):
+        return super().create(self._prepare_lesson(validated_data))
+
+    @transaction.atomic
     def update(self, instance, validated_data):
         # PUT replaces the optional code as well as the required fields.
         validated_data.setdefault("code", "")
-        return super().update(instance, validated_data)
+        return super().update(instance, self._prepare_lesson(validated_data, instance))
 
 
 class LessonFilterSerializer(serializers.Serializer):
