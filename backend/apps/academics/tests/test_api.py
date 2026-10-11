@@ -108,11 +108,11 @@ class AcademicsAPITests(TestCase):
             self.client.get(reverse("lesson-detail", args=[999999])).status_code, 404
         )
 
-    def test_filters_are_available_and_writes_are_not_public(self):
+    def test_filters_are_available_and_writes_require_authentication(self):
         response = self.client.get(reverse("lesson-list"), {"section": "basic"})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.json()), 2)
-        self.assertEqual(self.client.post(reverse("lesson-list"), {}).status_code, 405)
+        self.assertEqual(self.client.post(reverse("lesson-list"), {}).status_code, 401)
 
     def lesson_ids(self, **filters):
         response = self.client.get(reverse("lesson-list"), filters)

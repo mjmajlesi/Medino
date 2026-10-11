@@ -1,12 +1,14 @@
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
+from django.db.models.deletion import ProtectedError
 from rest_framework import generics
-from rest_framework.permissions import AllowAny
+from rest_framework.exceptions import ValidationError
+from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import Lesson, Section
-from .serializers import LessonFilterSerializer, LessonSerializer, SectionSerializer
+from .serializers import LessonFilterSerializer, LessonSerializer, LessonWriteSerializer, SectionSerializer
 from apps.resources.models import Resource
 from apps.resources.serializers import ResourceSerializer
 
@@ -19,9 +21,20 @@ class SectionListView(generics.ListAPIView):
     serializer_class = SectionSerializer
 
 
-class LessonListView(generics.ListAPIView):
-    authentication_classes = []
-    permission_classes = [AllowAny]
+class PublicReadStaffWriteMixin:
+    def initialize_request(self, request, *args, **kwargs):
+        self._public_read = request.method in ("GET", "HEAD", "OPTIONS")
+        return super().initialize_request(request, *args, **kwargs)
+
+    def get_authenticators(self):
+        # Preserve public reads even if the browser sends an expired Bearer token.
+        return [] if self._public_read else super().get_authenticators()
+
+    def get_permissions(self):
+        return [AllowAny() if self._public_read else IsAdminUser()]
+
+
+class LessonListView(PublicReadStaffWriteMixin, generics.ListAPIView):
     pagination_class = None
     queryset = Lesson.objects.select_related("section", "professor")
     serializer_class = LessonSerializer
@@ -52,10 +65,14 @@ class LessonListView(generics.ListAPIView):
             queryset = queryset.order_by(values["ordering"], "-pk")
         return queryset
 
+    def post(self, request):
+        serializer = LessonWriteSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        lesson = serializer.save()
+        return Response(LessonSerializer(lesson).data, status=201)
 
-class LessonDetailView(APIView):
-    authentication_classes = []
-    permission_classes = [AllowAny]
+
+class LessonDetailView(PublicReadStaffWriteMixin, APIView):
 
     def get(self, request, pk):
         lesson = get_object_or_404(
@@ -72,3 +89,19 @@ class LessonDetailView(APIView):
                 ).data,
             }
         )
+
+    def put(self, request, pk):
+        lesson = get_object_or_404(
+            Lesson.objects.select_related("section", "professor"), pk=pk
+        )
+        serializer = LessonWriteSerializer(lesson, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        return Response(LessonSerializer(serializer.save()).data)
+
+    def delete(self, request, pk):
+        lesson = get_object_or_404(Lesson, pk=pk)
+        try:
+            lesson.delete()
+        except ProtectedError as exc:
+            raise ValidationError({"lesson": ["Cannot delete a lesson with resources."]}) from exc
+        return Response(status=204)
