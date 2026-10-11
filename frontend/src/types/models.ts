@@ -24,7 +24,8 @@ export interface Lesson {
   section_slug: SectionSlug;
   title: string;
   professor: string;
-  term: number;
+  /** ترم اعلام‌نشده برای درس‌های جدید (نامشخص) */
+  term?: number;
   code?: string;
   /** از API می‌آید — در Mock مقدار نمایشی دارد */
   views?: number;

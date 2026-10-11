@@ -79,7 +79,10 @@ export default function LessonsListPage() {
     [allLessonsQuery.data],
   );
   const terms = useMemo(
-    () => [...new Set((allLessonsQuery.data ?? []).map((l) => l.term))].sort((a, b) => a - b),
+    () =>
+      [...new Set((allLessonsQuery.data ?? []).flatMap((l) => (l.term !== undefined ? [l.term] : [])))].sort(
+        (a, b) => a - b,
+      ),
     [allLessonsQuery.data],
   );
   const activeCount = [filters.section, filters.type, filters.professor, filters.term, filters.sort].filter(

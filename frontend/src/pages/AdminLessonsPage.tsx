@@ -49,7 +49,7 @@ function LessonForm({
           section_slug: initial.section_slug,
           title: initial.title,
           professor: initial.professor,
-          term: String(initial.term),
+          term: initial.term !== undefined ? String(initial.term) : '',
           code: initial.code ?? '',
         }
       : undefined,
@@ -208,7 +208,7 @@ export default function AdminLessonsPage() {
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium">{l.title}</p>
                   <p className="mt-0.5 text-xs text-slate-500">
-                    {sectionName(l.section_slug)} · {l.professor} · ترم {l.term.toLocaleString('fa-IR')}
+                    {sectionName(l.section_slug)} · {l.professor} · {l.term !== undefined ? `ترم ${l.term.toLocaleString('fa-IR')}` : 'ترم نامشخص'}
                   </p>
                 </div>
                 {deleteId === l.id ? (

@@ -30,7 +30,9 @@ export default function LessonCard({ lesson }: { lesson: Lesson }) {
             {sectionTitle}
           </span>
         )}
-        <span className="text-xs text-slate-400">ترم {lesson.term}</span>
+        <span className="text-xs text-slate-400">
+          {lesson.term !== undefined ? `ترم ${lesson.term.toLocaleString('fa-IR')}` : 'ترم نامشخص'}
+        </span>
       </div>
 
       <h3 className="mt-3 text-lg">{lesson.title}</h3>

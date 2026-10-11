@@ -60,9 +60,11 @@ export default function LessonDetailPage() {
           {sectionTitle && (
             <span className="rounded-full bg-brand-500 px-3 py-1 font-medium text-white">{sectionTitle}</span>
           )}
-          <span className="rounded-full bg-white px-3 py-1 text-slate-500 ring-1 ring-brand-100">
-            ترم {lesson.term.toLocaleString('fa-IR')}
-          </span>
+          {lesson.term !== undefined && (
+            <span className="rounded-full bg-white px-3 py-1 text-slate-500 ring-1 ring-brand-100">
+              ترم {lesson.term.toLocaleString('fa-IR')}
+            </span>
+          )}
         </div>
         <h1 className="mt-3 text-2xl md:text-3xl">{lesson.title}</h1>
         <p className="mt-2 flex items-center gap-1.5 text-sm text-slate-500">
