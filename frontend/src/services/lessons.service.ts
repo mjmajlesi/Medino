@@ -100,6 +100,56 @@ export interface SiteStats {
   summaries: number;
 }
 
+/* ------------------------------------------------------------------ */
+/* مدیریت دروس (staff) — قرارداد بک‌اند (هنوز پیاده نشده، TASK-21):     */
+/*   POST   /api/lessons/      {section_slug, title, professor, term, code?} -> 201 Lesson */
+/*   PUT    /api/lessons/:id/  {...} -> 200 Lesson                               */
+/*   DELETE /api/lessons/:id/  -> 204 (رفتار با منابع درس با بک‌اند است)        */
+/* هر سه فقط برای is_staff. با آماده شدن بک‌اند، شاخه واقعی همین‌جا وصل می‌شود. */
+/* ------------------------------------------------------------------ */
+
+export interface LessonInput {
+  section_slug: Lesson['section_slug'];
+  title: string;
+  professor: string;
+  term: number;
+  code?: string;
+}
+
+export async function createLesson(input: LessonInput): Promise<Lesson> {
+  if (USE_MOCK) {
+    await delay();
+    const created: Lesson = { ...input, id: `les-mock-${Date.now()}` };
+    lessonsMock.unshift(created);
+    return created;
+  }
+  const { data } = await api.post<Lesson>('/lessons/', input);
+  return data;
+}
+
+export async function updateLesson(id: string, input: LessonInput): Promise<Lesson> {
+  if (USE_MOCK) {
+    await delay();
+    const idx = lessonsMock.findIndex((l) => l.id === id);
+    if (idx === -1) throw new Error('درس پیدا نشد');
+    lessonsMock[idx] = { ...lessonsMock[idx], ...input };
+    return lessonsMock[idx];
+  }
+  const { data } = await api.put<Lesson>(`/lessons/${id}/`, input);
+  return data;
+}
+
+export async function deleteLesson(id: string): Promise<void> {
+  if (USE_MOCK) {
+    await delay();
+    const idx = lessonsMock.findIndex((l) => l.id === id);
+    if (idx === -1) throw new Error('درس پیدا نشد');
+    lessonsMock.splice(idx, 1);
+    return;
+  }
+  await api.delete(`/lessons/${id}/`);
+}
+
 /**
  * آمار کلی سایت — فقط منابع «تاییدشده» شمرده می‌شوند،
  * پس با هر تایید ادمین خودکار بزرگ می‌شود (از صفر شروع می‌شود).
