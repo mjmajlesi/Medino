@@ -1,8 +1,7 @@
 from django.shortcuts import get_object_or_404
+from django.db import transaction
 from django.db.models import Q
-from django.db.models.deletion import ProtectedError
 from rest_framework import generics
-from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -99,9 +98,7 @@ class LessonDetailView(PublicReadStaffWriteMixin, APIView):
         return Response(LessonSerializer(serializer.save()).data)
 
     def delete(self, request, pk):
-        lesson = get_object_or_404(Lesson, pk=pk)
-        try:
+        with transaction.atomic():
+            lesson = get_object_or_404(Lesson.objects.select_for_update(), pk=pk)
             lesson.delete()
-        except ProtectedError as exc:
-            raise ValidationError({"lesson": ["Cannot delete a lesson with resources."]}) from exc
         return Response(status=204)

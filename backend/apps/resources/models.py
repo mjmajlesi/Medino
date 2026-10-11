@@ -16,7 +16,7 @@ class Resource(models.Model):
         REJECTED = "rejected", "Rejected"
 
     lesson = models.ForeignKey(
-        "academics.Lesson", on_delete=models.PROTECT, related_name="resources"
+        "academics.Lesson", on_delete=models.CASCADE, related_name="resources"
     )
     type = models.CharField(max_length=10, choices=Type.choices)
     title = models.CharField(max_length=255)

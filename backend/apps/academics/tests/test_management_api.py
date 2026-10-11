@@ -1,8 +1,10 @@
 import os
 from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db import transaction
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from rest_framework.test import APIClient
@@ -236,24 +238,101 @@ class LessonManagementAPITests(TestCase):
         self.assertFalse(Lesson.objects.filter(pk=self.lesson.pk).exists())
         self.assertTrue(Resource.objects.filter(pk=other_resource.pk).exists())
 
-    def test_delete_with_resources_returns_400_and_preserves_media(self):
+    def test_delete_cascades_resources_and_cleans_only_their_files(self):
+        with TemporaryDirectory() as media_root, override_settings(MEDIA_ROOT=media_root):
+            first = Resource.objects.create(
+                lesson=self.lesson,
+                type=Resource.Type.NOTE,
+                title="First attached file",
+                status=Resource.Status.APPROVED,
+                file=SimpleUploadedFile("first.pdf", b"%PDF-1.4\n"),
+            )
+            second = Resource.objects.create(
+                lesson=self.lesson,
+                type=Resource.Type.NOTE,
+                title="Second attached file",
+                status=Resource.Status.PENDING,
+                file=SimpleUploadedFile("second.pdf", b"%PDF-1.4\n"),
+            )
+            external = Resource.objects.create(
+                lesson=self.lesson,
+                type=Resource.Type.VIDEO,
+                title="External resource",
+                status=Resource.Status.REJECTED,
+                external_url="https://example.org/video",
+            )
+            unrelated = Resource.objects.create(
+                lesson=self.other_lesson,
+                type=Resource.Type.NOTE,
+                title="Unrelated file",
+                status=Resource.Status.APPROVED,
+                file=SimpleUploadedFile("unrelated.pdf", b"%PDF-1.4\n"),
+            )
+            self.assertTrue(all(os.path.exists(item.file.path) for item in (first, second, unrelated)))
+            self.authenticate(self.staff)
+            with self.captureOnCommitCallbacks(execute=True):
+                response = self.client.delete(self.detail_url)
+            self.assertEqual(response.status_code, 204, response.content)
+            self.assertEqual(response.content, b"")
+            self.assertFalse(Lesson.objects.filter(pk=self.lesson.pk).exists())
+            self.assertFalse(Resource.objects.filter(pk__in=[first.pk, second.pk, external.pk]).exists())
+            self.assertTrue(Resource.objects.filter(pk=unrelated.pk).exists())
+            self.assertFalse(os.path.exists(first.file.path))
+            self.assertFalse(os.path.exists(second.file.path))
+            self.assertTrue(os.path.exists(unrelated.file.path))
+
+    def test_delete_with_already_missing_file_still_succeeds(self):
         with TemporaryDirectory() as media_root, override_settings(MEDIA_ROOT=media_root):
             resource = Resource.objects.create(
                 lesson=self.lesson,
                 type=Resource.Type.NOTE,
-                title="Attached file",
-                status=Resource.Status.APPROVED,
-                file=SimpleUploadedFile("note.pdf", b"%PDF-1.4\n"),
+                title="Missing file",
+                file=SimpleUploadedFile("missing.pdf", b"%PDF-1.4\n"),
             )
-            file_path = resource.file.path
-            self.assertTrue(os.path.exists(file_path))
+            resource.file.storage.delete(resource.file.name)
             self.authenticate(self.staff)
-            response = self.client.delete(self.detail_url)
-            self.assertEqual(response.status_code, 400, response.data)
-            self.assertIn("lesson", response.data)
-            self.assertTrue(Lesson.objects.filter(pk=self.lesson.pk).exists())
+            with self.captureOnCommitCallbacks(execute=True):
+                response = self.client.delete(self.detail_url)
+            self.assertEqual(response.status_code, 204)
+            self.assertFalse(Lesson.objects.filter(pk=self.lesson.pk).exists())
+            self.assertFalse(Resource.objects.filter(pk=resource.pk).exists())
+
+    def test_rolled_back_lesson_delete_keeps_resource_and_file(self):
+        with TemporaryDirectory() as media_root, override_settings(MEDIA_ROOT=media_root):
+            lesson_id = self.lesson.pk
+            resource = Resource.objects.create(
+                lesson=self.lesson,
+                type=Resource.Type.NOTE,
+                title="Keep on rollback",
+                file=SimpleUploadedFile("rollback.pdf", b"%PDF-1.4\n"),
+            )
+            with self.captureOnCommitCallbacks(execute=True) as callbacks:
+                with self.assertRaises(RuntimeError):
+                    with transaction.atomic():
+                        self.lesson.delete()
+                        raise RuntimeError("Rollback the deletion")
+            self.assertEqual(callbacks, [])
+            self.assertTrue(Lesson.objects.filter(pk=lesson_id).exists())
             self.assertTrue(Resource.objects.filter(pk=resource.pk).exists())
-            self.assertTrue(os.path.exists(file_path))
+            self.assertTrue(os.path.exists(resource.file.path))
+
+    def test_storage_failure_is_logged_after_successful_delete(self):
+        with TemporaryDirectory() as media_root, override_settings(MEDIA_ROOT=media_root):
+            resource = Resource.objects.create(
+                lesson=self.lesson,
+                type=Resource.Type.NOTE,
+                title="Storage failure",
+                file=SimpleUploadedFile("failure.pdf", b"%PDF-1.4\n"),
+            )
+            self.authenticate(self.staff)
+            with patch.object(resource.file.storage, "delete", side_effect=OSError("storage unavailable")):
+                with self.assertLogs("apps.resources.signals", level="ERROR"):
+                    with self.captureOnCommitCallbacks(execute=True):
+                        response = self.client.delete(self.detail_url)
+            self.assertEqual(response.status_code, 204)
+            self.assertFalse(Lesson.objects.filter(pk=self.lesson.pk).exists())
+            self.assertFalse(Resource.objects.filter(pk=resource.pk).exists())
+            self.assertTrue(os.path.exists(resource.file.path))
 
     def test_public_get_list_and_detail_ignore_stale_token(self):
         self.client.credentials(HTTP_AUTHORIZATION="Bearer stale-token")
