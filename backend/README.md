@@ -33,7 +33,9 @@ python manage.py createsuperuser
 python manage.py runserver
 ```
 
-`createsuperuser` asks for the custom user model's `student_no`. The academic seed can be rerun: it updates its known sections and lessons without duplicating them. For a fresh database it creates 6 sections, 12 professors, and 12 lessons. A former local `db.sqlite3` may still exist as an ignored legacy file; it is never read by current settings. Check and back it up before discarding it if it contains data you need. Existing user accounts and sessions are not created by the academic seed.
+`createsuperuser` asks for the custom user model's `student_no`. The academic seed mirrors the approved [75-lesson catalog](../docs/lessons-seed.json). It can be rerun: lessons are matched by section slug and title, while professors are matched by exact trimmed name. On a fresh database it creates 6 sections, 26 professors, and 75 lessons. It does not recreate the retired «زبان عمومی پزشکی» or «اخلاق پزشکی» lessons, and it does not delete unrelated rows already in a database. A former local `db.sqlite3` may still exist as an ignored legacy file; it is never read by current settings. Check and back it up before discarding it if it contains data you need. Existing user accounts and sessions are not created by the academic seed.
+
+For a verified development database, run `python manage.py seed_academics` before `python manage.py cleanup_dev_test_data`. The cleanup command previews matching `499*` users, `E2E-TEST-UPLOAD` resources, and `Test Prof` references. It requires `DEBUG=True` and `--yes` to delete; without `--yes` it only prints the preview. It deletes `Test Prof` only when no lesson references it. Resource files use the normal post-commit cleanup signal.
 
 ## Environment variables
 
@@ -106,6 +108,8 @@ Lesson writes accept `section_slug`, `title`, `professor`, `term`, and optional 
 ## Authentication and upload workflow
 
 The custom user identity is `student_no`. Passwords are hashed by Django. Login and registration issue JWT access and refresh tokens. Protected endpoints expect `Authorization: Bearer <access-token>`.
+
+SimpleJWT uses its default lifetimes: access tokens expire after 5 minutes and refresh tokens after 1 day. Clients can renew access with `/api/auth/token/refresh/`; these lifetimes are not overridden in this project.
 
 Student uploads become `pending`. Staff uploads become `approved` only when the staff user explicitly supplies `direct=true`; otherwise they are pending. Staff can approve or reject a pending resource once. The server sets uploader and review fields. Approved resources appear publicly, while pending and rejected resources remain visible only to their owner and staff. Private stored files require a valid token. The default file limit is 50 MiB. Uploaded files are stored under `MEDIA_ROOT` and excluded from Git.
 

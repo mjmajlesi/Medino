@@ -35,9 +35,10 @@
     },
     {
         "section_slug":  "basic",
-        "title":  "بافت‌شناسی",
+        "title":  "جنین‌شناسی",
         "professor":  "دکتر قاسمی",
-        "term":  1
+        "term":  1,
+        "code":  "BAS-103"
     },
     {
         "section_slug":  "basic",
