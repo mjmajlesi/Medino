@@ -22,7 +22,7 @@ export default function FileRow({ resource }: { resource: Resource }) {
           <Icon size={19} aria-hidden="true" />
         </span>
         <div className="min-w-0 flex-1">
-          <h4 className="text-sm font-medium leading-6">{resource.title}</h4>
+          <h4 className="break-words text-sm font-medium leading-6">{resource.title}</h4>
           {resource.description && (
             <p className="mt-0.5 text-xs leading-5 text-slate-500">{resource.description}</p>
           )}

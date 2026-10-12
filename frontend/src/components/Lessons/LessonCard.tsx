@@ -35,7 +35,7 @@ export default function LessonCard({ lesson }: { lesson: Lesson }) {
         </span>
       </div>
 
-      <h3 className="mt-3 text-lg">{lesson.title}</h3>
+      <h3 className="mt-3 break-words text-lg">{lesson.title}</h3>
       <p className="mt-1 text-sm text-slate-500">{lesson.professor}</p>
 
       <div className="mt-4 flex flex-wrap gap-1.5">
