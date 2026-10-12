@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { z } from 'zod';
+import PasswordInput from '../components/Ui/PasswordInput';
 import { useAuthStore } from '../store/auth.store';
 import { fa2en } from '../utils/digits';
 import { applyServerErrors } from '../utils/serverErrors';
@@ -126,10 +127,10 @@ export default function RegisterPage() {
           </Field>
           <div />
           <Field label="رمز عبور" error={errors.password?.message}>
-            <input {...register('password')} type="password" dir="ltr" placeholder="حداقل ۶ کاراکتر" className={inputCls} />
+            <PasswordInput {...register('password')} dir="ltr" placeholder="حداقل ۸ کاراکتر" className={inputCls} />
           </Field>
           <Field label="تکرار رمز عبور" error={errors.confirmPassword?.message}>
-            <input {...register('confirmPassword')} type="password" dir="ltr" placeholder="تکرار رمز" className={inputCls} />
+            <PasswordInput {...register('confirmPassword')} dir="ltr" placeholder="تکرار رمز" className={inputCls} />
           </Field>
         </div>
 

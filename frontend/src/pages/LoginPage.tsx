@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { z } from 'zod';
+import PasswordInput from '../components/Ui/PasswordInput';
 import { USE_MOCK } from '../services/api';
 import { useAuthStore } from '../store/auth.store';
 import { fa2en } from '../utils/digits';
@@ -71,7 +72,7 @@ export default function LoginPage() {
 
         <label className="mt-4 block">
           <span className="mb-1.5 block text-xs font-medium text-slate-500">رمز عبور</span>
-          <input {...register('password')} type="password" dir="ltr" placeholder="••••••" className={inputCls} />
+          <PasswordInput {...register('password')} dir="ltr" placeholder="••••••" className={inputCls} />
           {errors.password && <span className="mt-1 block text-xs text-red-500">{errors.password.message}</span>}
         </label>
 
