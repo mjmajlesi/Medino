@@ -11,7 +11,8 @@ import { applyServerErrors } from '../utils/serverErrors';
 const schema = z.object({
   studentNo: z
     .string()
-    .regex(/^\d{7,12}$/, 'شماره دانشجویی باید ۷ تا ۱۲ رقم باشد'),
+    .transform(fa2en)
+    .pipe(z.string().regex(/^\d{7,12}$/, 'شماره دانشجویی باید ۷ تا ۱۲ رقم باشد')),
   password: z.string().min(6, 'رمز عبور حداقل ۶ کاراکتر است'),
 });
 

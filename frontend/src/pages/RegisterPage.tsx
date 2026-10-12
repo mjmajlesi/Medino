@@ -11,8 +11,9 @@ const schema = z
   .object({
     firstName: z.string().trim().min(2, 'نام را کامل بنویس'),
     lastName: z.string().trim().min(2, 'نام خانوادگی را کامل بنویس'),
-    studentNo: z.string().regex(/^\d{7,12}$/, 'شماره دانشجویی باید ۷ تا ۱۲ رقم باشد'),
-    entryYear: z.string().regex(/^\d{4}$/, 'سال ورودی ۴ رقم است (مثلا ۱۴۰۳)'),
+    // ارقام فارسی هم قبول است — اول به لاتین تبدیل بعد اعتبارسنجی می‌شود
+    studentNo: z.string().transform(fa2en).pipe(z.string().regex(/^\d{7,12}$/, 'شماره دانشجویی باید ۷ تا ۱۲ رقم باشد')),
+    entryYear: z.string().transform(fa2en).pipe(z.string().regex(/^\d{4}$/, 'سال ورودی ۴ رقم است (مثلا ۱۴۰۳)')),
     currentTerm: z.string().min(1, 'ترم فعلی را انتخاب کن'),
     // هم‌راستا با ولیدیتورهای جنگو: حداقل ۸ کاراکتر و نه کاملا عددی
     password: z
