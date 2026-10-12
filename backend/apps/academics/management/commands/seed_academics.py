@@ -1,9 +1,13 @@
-"""Seed the approved academic catalog represented by docs/lessons-seed.json."""
+"""Synchronize the approved catalog represented by docs/lessons-seed.json."""
+
+from collections import defaultdict
 
 from django.core.management.base import BaseCommand, CommandError
-from django.db import transaction
+from django.db import connection, transaction
+from django.db.models import Count
 
 from apps.academics.models import Lesson, Professor, Section
+from apps.resources.models import Resource
 
 
 SECTIONS = (
@@ -97,59 +101,221 @@ LESSONS = (
 
 
 class Command(BaseCommand):
-    help = "Create or update the approved 75-lesson academic catalog."
+    help = "Synchronize the approved catalog; prune stale rows only with --prune."
 
-    @transaction.atomic
-    def handle(self, *args, **options):
+    def add_arguments(self, parser):
+        parser.add_argument(
+            "--prune", action="store_true", help="Delete stale lessons without resources and unused professors."
+        )
+        parser.add_argument(
+            "--dry-run", action="store_true", help="Show planned changes without writing to the database."
+        )
+
+    def _plan(self, prune):
         keys = [(section_slug, title) for section_slug, title, *_ in LESSONS]
         if len(LESSONS) != 75 or len(set(keys)) != len(keys):
             raise CommandError("The academic seed must contain 75 distinct section/title pairs.")
 
-        section_counts = {"created": 0, "updated": 0}
-        professor_created = 0
-        lesson_counts = {"created": 0, "updated": 0}
-
-        sections = {}
+        existing_sections = {section.slug: section for section in Section.objects.all()}
+        section_creates = []
+        section_updates = []
         for order, (slug, title, description) in enumerate(SECTIONS, start=1):
-            section, created = Section.objects.update_or_create(
-                slug=slug,
-                defaults={"title": title, "description": description, "order": order},
-            )
-            # Serialize concurrent runs before resolving professors or lessons.
-            sections[slug] = Section.objects.select_for_update().get(pk=section.pk)
-            section_counts["created" if created else "updated"] += 1
+            section = existing_sections.get(slug)
+            if section is None:
+                section_creates.append(slug)
+            elif (section.title, section.description, section.order) != (title, description, order):
+                section_updates.append(slug)
 
-        professors = {}
-        for section_slug, title, professor_name, term, code in LESSONS:
-            name = professor_name.strip()
-            professor = professors.get(name)
-            if professor is None:
-                matches = list(Professor.objects.filter(name=name).order_by("pk")[:2])
-                if len(matches) > 1:
-                    raise CommandError(f"Professor name is ambiguous: {name}")
-                professor = matches[0] if matches else Professor.objects.create(name=name)
-                if not matches:
-                    professor_created += 1
-                professors[name] = professor
+        professors_by_name = defaultdict(list)
+        for professor in Professor.objects.all():
+            professors_by_name[professor.name].append(professor)
+        required_names = {professor_name.strip() for _, _, professor_name, _, _ in LESSONS}
+        for name in required_names:
+            if len(professors_by_name[name]) > 1:
+                raise CommandError(f"Professor name is ambiguous: {name}")
+        professor_creates = sorted(name for name in required_names if not professors_by_name[name])
 
-            try:
-                _, created = Lesson.objects.update_or_create(
-                    section=sections[section_slug],
-                    title=title,
-                    defaults={"professor": professor, "term": term, "code": code},
-                )
-            except Lesson.MultipleObjectsReturned as exc:
-                raise CommandError(
-                    f"Lesson identity is ambiguous: {section_slug}/{title}"
-                ) from exc
-            lesson_counts["created" if created else "updated"] += 1
-
-        self.stdout.write(
-            self.style.SUCCESS(
-                f"Sections: {len(SECTIONS)} (created {section_counts['created']}, "
-                f"updated {section_counts['updated']}); "
-                f"Professors: {len(professors)} (created {professor_created}); "
-                f"Lessons: {len(LESSONS)} (created {lesson_counts['created']}, "
-                f"updated {lesson_counts['updated']})."
-            )
+        existing_lessons = list(
+            Lesson.objects.select_related("section", "professor")
+            .annotate(resource_count=Count("resources"))
+            .order_by("pk")
         )
+        lessons_by_key = defaultdict(list)
+        for lesson in existing_lessons:
+            lessons_by_key[(lesson.section.slug, lesson.title)].append(lesson)
+        lesson_creates = []
+        lesson_updates = []
+        for section_slug, title, professor_name, term, code in LESSONS:
+            matches = lessons_by_key[(section_slug, title)]
+            if len(matches) > 1:
+                raise CommandError(f"Lesson identity is ambiguous: {section_slug}/{title}")
+            row = (section_slug, title, professor_name.strip(), term, code)
+            if not matches:
+                lesson_creates.append(row)
+            else:
+                lesson = matches[0]
+                if (lesson.professor.name, lesson.term, lesson.code) != row[2:]:
+                    lesson_updates.append((row, lesson))
+
+        final_keys = set(keys)
+        stale_lessons = [
+            lesson for lesson in existing_lessons
+            if (lesson.section.slug, lesson.title) not in final_keys
+        ]
+        safe_lessons = [lesson for lesson in stale_lessons if lesson.resource_count == 0]
+        blocked_lessons = [lesson for lesson in stale_lessons if lesson.resource_count > 0]
+        blocked_professor_ids = {lesson.professor_id for lesson in blocked_lessons}
+        safe_professors = [
+            professor for rows in professors_by_name.values() for professor in rows
+            if professor.name not in required_names and professor.pk not in blocked_professor_ids
+        ]
+        safe_professors.sort(key=lambda professor: professor.pk)
+
+        return {
+            "sections": existing_sections,
+            "section_creates": section_creates,
+            "section_updates": section_updates,
+            "professors": professors_by_name,
+            "professor_creates": professor_creates,
+            "lessons_by_key": lessons_by_key,
+            "lesson_creates": lesson_creates,
+            "lesson_updates": lesson_updates,
+            "safe_lessons": safe_lessons,
+            "blocked_lessons": blocked_lessons,
+            "safe_professors": safe_professors,
+            "expected_sections": len(existing_sections) + len(section_creates),
+            "expected_professors": Professor.objects.count() + len(professor_creates) - (
+                len(safe_professors) if prune else 0
+            ),
+            "expected_lessons": len(existing_lessons) + len(lesson_creates) - (
+                len(safe_lessons) if prune else 0
+            ),
+        }
+
+    def _print_plan(self, plan, prune):
+        self.stdout.write("DRY RUN: no database writes.")
+        self.stdout.write(
+            f"Sections to create: {len(plan['section_creates'])}; "
+            f"sections to update: {len(plan['section_updates'])}; "
+            f"professors to create: {len(plan['professor_creates'])}."
+        )
+        for label, rows in (
+            ("Lessons to create", plan["lesson_creates"]),
+            ("Lessons to update", [row for row, _ in plan["lesson_updates"]]),
+        ):
+            self.stdout.write(f"{label} ({len(rows)}):")
+            for slug, title, professor_name, term, code in rows:
+                self.stdout.write(f"  {slug}/{title} -> {professor_name}, term {term}, code {code or '-'}")
+        if prune:
+            self.stdout.write(f"Stale lessons safe to delete ({len(plan['safe_lessons'])}):")
+            for lesson in plan["safe_lessons"]:
+                self.stdout.write(
+                    f"  id {lesson.pk}: {lesson.section.slug}/{lesson.title}; resources 0"
+                )
+            self.stdout.write(
+                f"Stale lessons blocked by resources ({len(plan['blocked_lessons'])}):"
+            )
+            for lesson in plan["blocked_lessons"]:
+                self.stdout.write(
+                    f"  id {lesson.pk}: {lesson.section.slug}/{lesson.title}; "
+                    f"resources {lesson.resource_count}"
+                )
+            self.stdout.write(f"Professors safe to delete ({len(plan['safe_professors'])}):")
+            for professor in plan["safe_professors"]:
+                self.stdout.write(f"  id {professor.pk}: {professor.name}")
+        self.stdout.write(
+            f"Expected final counts: Sections {plan['expected_sections']}; "
+            f"Professors {plan['expected_professors']}; Lessons {plan['expected_lessons']}."
+        )
+        if prune and plan["blocked_lessons"]:
+            self.stdout.write(
+                f"PRUNE INCOMPLETE: {len(plan['blocked_lessons'])} stale lessons have resources."
+            )
+
+    def handle(self, *args, **options):
+        prune = options["prune"]
+        if options["dry_run"]:
+            self._print_plan(self._plan(prune), prune)
+            return
+
+        with transaction.atomic():
+            # Serialize seed executions. Prune also locks existing lessons before
+            # counting resources so a concurrent upload cannot be cascaded away.
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT pg_advisory_xact_lock(73922, 1)")
+            if prune:
+                list(Lesson.objects.select_for_update(of=("self",)).order_by("pk").values_list("pk", flat=True))
+            plan = self._plan(prune)
+
+            sections = plan["sections"]
+            for order, (slug, title, description) in enumerate(SECTIONS, start=1):
+                section = sections.get(slug)
+                if section is None:
+                    sections[slug] = Section.objects.create(
+                        slug=slug, title=title, description=description, order=order
+                    )
+                elif slug in plan["section_updates"]:
+                    section.title, section.description, section.order = title, description, order
+                    section.save(update_fields=["title", "description", "order"])
+
+            professors = {}
+            for name in sorted({name.strip() for _, _, name, _, _ in LESSONS}):
+                matches = plan["professors"][name]
+                professors[name] = matches[0] if matches else Professor.objects.create(name=name)
+
+            updated_keys = {(row[0], row[1]) for row, _ in plan["lesson_updates"]}
+            for slug, title, name, term, code in LESSONS:
+                matches = plan["lessons_by_key"][(slug, title)]
+                if not matches:
+                    Lesson.objects.create(
+                        section=sections[slug], title=title, professor=professors[name.strip()],
+                        term=term, code=code,
+                    )
+                elif (slug, title) in updated_keys:
+                    lesson = matches[0]
+                    lesson.professor = professors[name.strip()]
+                    lesson.term = term
+                    lesson.code = code
+                    lesson.save(update_fields=["professor", "term", "code"])
+
+            deleted_lessons = 0
+            deleted_professors = 0
+            if prune:
+                for lesson in plan["safe_lessons"]:
+                    if Resource.objects.filter(lesson_id=lesson.pk).exists():
+                        raise CommandError(
+                            f"Resource appeared on stale Lesson {lesson.pk}; pruning rolled back."
+                        )
+                    lesson.delete()
+                    deleted_lessons += 1
+                for professor in plan["safe_professors"]:
+                    if Lesson.objects.filter(professor=professor).exists():
+                        raise CommandError(
+                            f"Professor {professor.pk} is still referenced; pruning rolled back."
+                        )
+                    professor.delete()
+                    deleted_professors += 1
+
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f"Sections: {len(SECTIONS)} (created {len(plan['section_creates'])}, "
+                    f"updated {len(plan['section_updates'])}); "
+                    f"Professors: {len({name for _, _, name, _, _ in LESSONS})} "
+                    f"(created {len(plan['professor_creates'])}, deleted {deleted_professors}); "
+                    f"Lessons: {len(LESSONS)} (created {len(plan['lesson_creates'])}, "
+                    f"updated {len(plan['lesson_updates'])}, deleted {deleted_lessons})."
+                )
+            )
+            self.stdout.write(
+                f"Final counts: Sections {Section.objects.count()}; "
+                f"Professors {Professor.objects.count()}; Lessons {Lesson.objects.count()}."
+            )
+            if prune and plan["blocked_lessons"]:
+                for lesson in plan["blocked_lessons"]:
+                    self.stdout.write(
+                        f"BLOCKED stale Lesson id {lesson.pk}: {lesson.section.slug}/{lesson.title}; "
+                        f"resources {lesson.resource_count}"
+                    )
+                self.stdout.write(
+                    f"PRUNE INCOMPLETE: {len(plan['blocked_lessons'])} stale lessons have resources."
+                )
