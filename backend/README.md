@@ -1,16 +1,23 @@
 # Medino Backend
 
-Medino is a Django REST API using PostgreSQL. SQLite is no longer a runtime or test database. Existing Django migrations are retained.
+Medino is a Django REST API backed by PostgreSQL. The current API contract is in [API reference](../docs/api.md), the container and VPS setup is in [deployment](../docs/deployment.md), and database maintenance is in [operations](../docs/operations.md). The [75-lesson reference catalog](../docs/lessons-seed.json) mirrors the catalog embedded in `seed_academics.py`.
 
-## Requirements
+## Architecture and stack
 
-- Python 3.12 or newer supported by the pinned Django release
-- PostgreSQL 18 for the documented container stack; a compatible local PostgreSQL server also works
-- A locally generated `SECRET_KEY` and a PostgreSQL user that can create a test database
+```text
+Browser --HTTPS--> host Nginx --127.0.0.1:8080--> Docker frontend Nginx
+                                           |-- React SPA (/ and /admin)
+                                           |-- /api/ and /django-admin/ --> Django/Gunicorn --> PostgreSQL
+                                           `-- /static/ --> collected Django static files
+```
 
-## Setup
+The frontend Nginx container runs as a non-root user on port 8080. It serves the built React SPA, proxies `/api/` and `/django-admin/` to the backend, and serves `/static/` from the shared `static_data` volume. `/healthz` checks the frontend container. `/admin` is a React route; Django Admin is `/django-admin/`. Uploaded media in `media_data` is **not** served from Nginx: `/media/` returns 404. Stored files are streamed by `/api/resources/{id}/file/` after Django checks visibility.
 
-From `backend/`:
+The container images use Python 3.12, PostgreSQL 18, Node 22.23.3 for the frontend build, and Nginx 1.30.5 for the frontend runtime. `requirements.txt` pins Django 5.2.17, Django REST Framework 3.16.1, SimpleJWT 5.5.1, django-cors-headers 4.9.0, Psycopg 3.2.12, and Gunicorn 23.0.0. The three backend apps are `accounts` (student identity, JWT and staff access), `academics` (sections, professors and lessons), and `resources` (uploads, moderation, files and stats).
+
+## Local backend setup
+
+From `backend/`, connect to a PostgreSQL server reachable from the host:
 
 ```bash
 python3 -m venv .venv
@@ -20,11 +27,7 @@ cp .env.example .env
 chmod 600 .env
 ```
 
-Edit `.env` before starting anything. Generate a unique secret, for example with `python -c 'from secrets import token_urlsafe; print(token_urlsafe(48))'`, and replace the example `SECRET_KEY`. Replace `POSTGRES_PASSWORD` with a unique local password. The backend reads `.env` without overriding variables already present in the process environment. Never commit or share `.env`.
-
-The complete PostgreSQL 18, Django, and React Compose stack is documented in the [root README](../README.md). For a host-run backend, connect `.env` to a PostgreSQL server reachable from the host. The container stack's PostgreSQL service has no host port by default, and its `POSTGRES_HOST=postgres` value resolves only inside Compose.
-
-To initialize and run the API:
+Replace the example secret and database password in `.env`; `python -c 'from secrets import token_urlsafe; print(token_urlsafe(48))'` can generate a unique `SECRET_KEY`. Settings load `backend/.env` without overriding process environment variables. `POSTGRES_HOST=postgres` resolves only inside Compose; the Compose database is not published on the host. Never commit `.env`. PostgreSQL is required for runtime and tests; there is no SQLite fallback. The configured test user needs permission to create a test database.
 
 ```bash
 python manage.py migrate
@@ -33,92 +36,42 @@ python manage.py createsuperuser
 python manage.py runserver
 ```
 
-`createsuperuser` asks for the custom user model's `student_no`. The academic seed mirrors the approved [75-lesson catalog](../docs/lessons-seed.json). It can be rerun: lessons are matched by section slug and title, while professors are matched by exact trimmed name. On a fresh database it creates 6 sections, 26 professors, and 75 lessons. It does not recreate the retired «زبان عمومی پزشکی» or «اخلاق پزشکی» lessons. By default, it does not delete unrelated rows already in a database. A former local `db.sqlite3` may still exist as an ignored legacy file; it is never read by current settings. Check and back it up before discarding it if it contains data you need. Existing user accounts and sessions are not created by the academic seed.
+`createsuperuser` uses `student_no` as the login identity. The seed creates or updates six sections, 26 professors and 75 lessons on a fresh database. It matches lessons by `(section_slug, title)` and never deletes stale rows by default. Review [operations](../docs/operations.md) before using `--prune`, `--dry-run`, or the development cleanup command.
 
-By default, `seed_academics` only creates or updates rows. Run `python manage.py seed_academics --prune --dry-run` to preview catalog changes, stale lessons, resource counts, unused professors, and expected final counts without writing. `python manage.py seed_academics --prune` additionally deletes stale lessons only when they have no Resource rows, then deletes professors outside the catalog only when no lesson references them. It leaves stale lessons with resources and their files intact and reports pruning as incomplete. Review the dry run before using `--prune` on a populated database.
+## Authentication and roles
 
-For a verified development database, run `python manage.py seed_academics` before `python manage.py cleanup_dev_test_data`. The cleanup command previews matching `499*` users, `E2E-TEST-UPLOAD` resources, and `Test Prof` references. It requires `DEBUG=True` and `--yes` to delete; without `--yes` it only prints the preview. It deletes `Test Prof` only when no lesson references it. Resource files use the normal post-commit cleanup signal.
+Registration and login issue JWT access and refresh tokens; protected API calls use `Authorization: Bearer <access-token>`. The project does not override SimpleJWT's default lifetimes: access 5 minutes, refresh 1 day. Login, registration and `/api/auth/me/` return `is_staff` and `is_superuser`. Registration sets both to false on the server, regardless of client-supplied privilege fields.
 
-## Environment variables
-
-| Variable | Purpose |
+| Role | Practical access |
 | --- | --- |
-| `SECRET_KEY` | Required unique Django secret; no production default. |
-| `DEBUG` | Explicit `1`, `true`, `yes`, or `on` enables debug; other values disable it. |
-| `ALLOWED_HOSTS` | Comma-separated API hostnames without scheme or port; no wildcard default. |
-| `CORS_ALLOWED_ORIGINS` | Comma-separated exact client origins, each with scheme and port when applicable; no allow-all default. |
-| `CSRF_TRUSTED_ORIGINS` | Comma-separated exact origins allowed for Django Admin CSRF checks behind a trusted proxy. |
-| `POSTGRES_DB` | Required PostgreSQL database name. |
-| `POSTGRES_USER` | Required PostgreSQL user. |
-| `POSTGRES_PASSWORD` | Required PostgreSQL password. |
-| `POSTGRES_HOST` | Required PostgreSQL hostname or address. |
-| `POSTGRES_PORT` | Required TCP port, integer from 1 to 65535. |
-| `MAX_UPLOAD_SIZE` | Positive upload limit in bytes; default 52,428,800 (50 MiB). |
-| `SECURE_SSL_REDIRECT` | Redirect HTTP to HTTPS when enabled; default false. |
-| `SESSION_COOKIE_SECURE` | Send session cookies only over HTTPS when enabled; default false. |
-| `CSRF_COOKIE_SECURE` | Send CSRF cookies only over HTTPS when enabled; default false. |
-| `SECURE_HSTS_SECONDS` | HSTS lifetime in seconds; default 0. |
-| `SECURE_HSTS_INCLUDE_SUBDOMAINS` | Extend HSTS to subdomains; default false. |
-| `SECURE_HSTS_PRELOAD` | Opt in to HSTS preload; default false. |
-| `SECURE_PROXY_SSL_HEADER` | Optional exact value `HTTP_X_FORWARDED_PROTO,https` for a trusted proxy that strips client-supplied versions of this header. |
+| Student (`is_staff=False`, `is_superuser=False`) | Public reads, authenticated uploads and own upload list. |
+| Staff/Admin (`is_staff=True`) | Student capabilities plus moderation, explicit direct upload, lesson writes and the user-management API. |
+| Superuser (`is_superuser=True`, normally `is_staff=True`) | Staff capabilities and full Django Admin privileges. |
 
-Comma-separated lists trim whitespace and ignore empty entries. Empty required database values fail during startup. Production should use `DEBUG=False`, a unique `SECRET_KEY`, explicit public `ALLOWED_HOSTS` and `CORS_ALLOWED_ORIGINS`, HTTPS, secure cookies, and a carefully selected HSTS policy. Turn on `SECURE_SSL_REDIRECT` only after HTTPS termination and proxy forwarding are correct. HSTS preload and subdomain scope require deliberate domain-wide planning. Run `python manage.py check --deploy` with the actual deployment environment; local HTTP defaults intentionally produce security warnings.
+The user-management API lets staff grant or revoke **only** `is_staff` for other non-superusers. It cannot change `is_superuser`, cannot change any superuser's staff state, and cannot revoke the caller's own staff access. The backend API exists, but the current React frontend has no User Management page or `/admin/users` route. See [API reference](../docs/api.md#user-management).
 
-## Database and tests
+## API and data behavior
 
-The application and test suite use `django.db.backends.postgresql` with Psycopg 3. There is no SQLite fallback. `python manage.py test` creates a PostgreSQL test database, so the configured user needs `CREATEDB` permission. Use these checks from `backend/`:
+Public reads include `/api/health/`, `/api/sections/`, `/api/lessons/`, `/api/lessons/{id}/`, and `/api/stats/`. Staff writes include lesson create, replace and delete, moderation, and staff-access changes. The lesson list accepts `section`, `search`, `professor`, `term`, `type`, and `ordering=-created_at|-views`; a detail GET does not increment stored views. Lesson deletion returns 204 and cascades to its Resource rows. After the database transaction commits, Django storage deletes a file only if no Resource still references it; storage failures are logged and may leave an orphan for operator cleanup.
 
-```bash
-python manage.py check
-python manage.py check --deploy
-python manage.py makemigrations --check
-python manage.py migrate
-python manage.py showmigrations
-python manage.py test
-```
+Resource types are `note`, `video`, `sample`, and `summary`; statuses are `pending`, `approved`, and `rejected`. Normal uploads start pending. Staff must explicitly send `direct=true` for an immediately approved upload. Approved resources are public; pending and rejected resources are visible through the applicable API to their owner and staff. Private stored-file requests without authorization return 404. External resource URLs point to third-party hosts, which Medino cannot access-control after disclosure. Uploads accept either a file or an HTTP(S) `external_url`, never both. The default backend limit is 52,428,800 bytes (50 MiB), and container Nginx permits request bodies up to 55 MiB. See [API reference](../docs/api.md#resources-and-moderation) for extensions and response shapes.
 
-## API
+## Environment and checks
 
-All paths below are relative to the API host.
+`backend/.env.example` is the local template; root `.env.docker.example` is the Compose deployment template. Set real values in ignored `.env` or `.env.docker` files. The Django settings read these variables:
 
-Django Admin is served at `/django-admin/`; the React application owns `/admin`.
+| Variable | Current behavior |
+| --- | --- |
+| `SECRET_KEY` | Required; no usable production default. |
+| `DEBUG` | True for `1`, `true`, `yes`, or `on`; otherwise false. Use false in production. |
+| `ALLOWED_HOSTS` | Comma-separated hostnames without scheme/port; no wildcard default. |
+| `CORS_ALLOWED_ORIGINS` | Comma-separated browser origins; no allow-all default. Same-origin Compose traffic can leave it empty. |
+| `CSRF_TRUSTED_ORIGINS` | Comma-separated trusted origins for Django Admin CSRF behind a proxy. |
+| `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`, `POSTGRES_PORT` | Required PostgreSQL connection; port must be 1–65535. Compose supplies host `postgres`, port `5432`. |
+| `MAX_UPLOAD_SIZE` | Positive byte limit; default 52,428,800. |
+| `SECURE_SSL_REDIRECT`, `SESSION_COOKIE_SECURE`, `CSRF_COOKIE_SECURE` | Boolean HTTPS settings; default false. |
+| `SECURE_HSTS_SECONDS` | Non-negative HSTS lifetime; default 0. |
+| `SECURE_HSTS_INCLUDE_SUBDOMAINS`, `SECURE_HSTS_PRELOAD` | Boolean HSTS options; default false. |
+| `SECURE_PROXY_SSL_HEADER` | Optional, exact value `HTTP_X_FORWARDED_PROTO,https`; use only behind a trusted proxy that controls this header. |
 
-| Method | Path | Auth | Purpose |
-| --- | --- | --- | --- |
-| GET | `/api/health/` | Public | Health response. |
-| POST | `/api/auth/register/` | Public | Register a student and issue JWTs. |
-| POST | `/api/auth/login/` | Public | Log in with `student_no` and password. |
-| POST | `/api/auth/token/refresh/` | Refresh token | Issue a new access token. |
-| GET | `/api/auth/me/` | Access token | Return the current user, including `is_staff` and `is_superuser`. |
-| GET | `/api/sections/` | Public | List academic sections. |
-| GET | `/api/lessons/` | Public | List, filter, search, and sort lessons. |
-| POST | `/api/lessons/` | Staff access token | Create a lesson from an existing section slug and an existing or new professor name. |
-| GET | `/api/lessons/{id}/` | Public | Lesson and approved resources; does not increment views. |
-| PUT | `/api/lessons/{id}/` | Staff access token | Replace editable lesson fields. |
-| DELETE | `/api/lessons/{id}/` | Staff access token | Delete a lesson and its resources. |
-| GET | `/api/stats/` | Public | Count lessons and approved resources by type. |
-| POST | `/api/uploads/` | Access token | Upload a resource. |
-| GET | `/api/uploads/mine/` | Access token | List the current user's uploads. |
-| GET | `/api/admin/pending/` | Staff access token | List pending uploads. |
-| POST | `/api/admin/approve/{id}/` | Staff access token | Send `action=approve` or `action=reject`. |
-| GET | `/api/admin/users/` | Staff access token | Paginated user list; supports `search`, `role`, and `page`. |
-| PATCH | `/api/admin/users/{id}/access/` | Staff access token | Change only `is_staff` using `{ "is_staff": true/false }`. |
-| GET | `/api/resources/{id}/file/` | Public if approved; otherwise owner or staff access token | Stream a stored file. |
-
-The lesson list accepts `section`, `search`, `professor`, `term`, `type`, `ordering=-created_at`, and `ordering=-views`. Lesson views are stored values. Auth responses include `is_staff` and `is_superuser`; student registration cannot grant either privilege. IDs in API responses are strings and dates use ISO 8601.
-
-`is_staff` grants Medino React admin access. `is_superuser` is Django's highest privilege and cannot be changed through the React user management API. Both staff and superusers may list users and change `is_staff` for non-superusers. The user list has 20 rows per page, searches `student_no`, `first_name`, and `last_name`, and accepts `role=all|student|staff|superuser`. Access changes reject any field besides `is_staff`. No caller may change a superuser through this endpoint or revoke their own staff access; a staff admin may revoke another non-superuser staff admin. The user list and mutation responses exclude passwords, tokens, groups, and raw permissions.
-
-Lesson writes accept `section_slug`, `title`, `professor`, `term`, and optional `code`; the section must already exist. POST and PUT trim the professor name, reuse a single existing match, or create a new professor. Ambiguous names are rejected. POST and PUT return the same lesson fields as the public list. Deleting a lesson also deletes all its Resource rows. Uploaded files are removed through Django storage after the database transaction commits; unrelated or still-referenced files are retained. Missing files do not block deletion. Unexpected storage failures are logged after commit, so the database deletion still returns HTTP 204 and an orphaned file may require operator cleanup.
-
-## Authentication and upload workflow
-
-The custom user identity is `student_no`. Passwords are hashed by Django. Login and registration issue JWT access and refresh tokens. Protected endpoints expect `Authorization: Bearer <access-token>`.
-
-SimpleJWT uses its default lifetimes: access tokens expire after 5 minutes and refresh tokens after 1 day. Clients can renew access with `/api/auth/token/refresh/`; these lifetimes are not overridden in this project.
-
-Student uploads become `pending`. Staff uploads become `approved` only when the staff user explicitly supplies `direct=true`; otherwise they are pending. Staff can approve or reject a pending resource once. The server sets uploader and review fields. Approved resources appear publicly, while pending and rejected resources remain visible only to their owner and staff. Private stored files require a valid token. The default file limit is 50 MiB. Uploaded files are stored under `MEDIA_ROOT` and excluded from Git.
-
-## Production notes
-
-Use a managed PostgreSQL service or a properly operated PostgreSQL instance with backups and limited credentials. Put Django behind a trusted HTTPS reverse proxy, set the production environment variables above, run `python manage.py collectstatic --noinput`, serve `STATIC_ROOT` through the proxy, and run `check --deploy`. Django's development media serving is not a production file delivery strategy. Preserve the current approval-aware file endpoint or implement an equally access-controlled production media path; never expose `MEDIA_ROOT` directly if it contains private uploads. Configure request body limits at the proxy as well as `MAX_UPLOAD_SIZE` in Django. Standard error logs go to the console; do not log passwords, JWTs, or uploaded contents.
+From `backend/`, check configuration and migrations with `python manage.py check`, `python manage.py makemigrations --check`, and `python manage.py showmigrations`. Run the full PostgreSQL suite with `python manage.py test`. In the deployed environment also run `python manage.py check --deploy`; configure HTTPS forwarding before enabling SSL redirects and HSTS. Deployment commands, health checks, backup and restore are in [deployment](../docs/deployment.md) and [operations](../docs/operations.md).
