@@ -7,20 +7,12 @@ from .models import User
 
 
 class StudentUserSerializer(serializers.ModelSerializer):
-    entry_year = serializers.SerializerMethodField()
-    current_term = serializers.SerializerMethodField()
     is_staff = serializers.BooleanField(read_only=True)
     is_superuser = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = User
         fields = ("first_name", "last_name", "student_no", "entry_year", "current_term", "is_staff", "is_superuser")
-
-    def get_entry_year(self, user):
-        return str(user.entry_year) if user.entry_year is not None else ""
-
-    def get_current_term(self, user):
-        return str(user.current_term) if user.current_term is not None else ""
 
 
 class AdminUserSerializer(serializers.ModelSerializer):

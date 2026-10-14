@@ -13,7 +13,7 @@ The current React application has `/admin`, `/admin/pending`, and `/admin/lesson
 | `POST /api/auth/token/refresh/` | Refresh token | JSON `{refresh}` | 200 `{access}` with current default SimpleJWT configuration | 401 for invalid/expired refresh token. |
 | `GET /api/auth/me/` | Access token | None | 200 current `user` | 401 without valid access token. |
 
-`student_no` is the login identity. The auth `user` object contains `first_name`, `last_name`, `student_no`, `entry_year` and `current_term` as strings (empty strings when the numeric values are unset), plus Boolean `is_staff` and `is_superuser`. It does **not** include a user ID. Register always creates an active non-staff, non-superuser user on the server; client-supplied role fields cannot grant privileges. SimpleJWT uses its unmodified default lifetime: access 5 minutes and refresh 1 day. The backend does not expose a profile-update endpoint.
+`student_no` is the login identity. The auth `user` object contains string `first_name`, `last_name`, and `student_no`; `entry_year` and `current_term` are JSON integers or `null` when unset. It also contains Boolean `is_staff` and `is_superuser`, but no user ID. Register always creates an active non-staff, non-superuser user on the server; client-supplied role fields cannot grant privileges. SimpleJWT uses its unmodified default lifetime: access 5 minutes and refresh 1 day. The backend does not expose a profile-update endpoint.
 
 ## Academics
 

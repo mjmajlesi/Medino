@@ -40,17 +40,24 @@ class AccountsAPITests(TestCase):
         return {
             **{
                 key: self.payload[key]
-                for key in ("first_name", "last_name", "student_no", "entry_year", "current_term")
+                for key in ("first_name", "last_name", "student_no")
             },
+            "entry_year": 1401,
+            "current_term": 8,
             "is_staff": False,
             "is_superuser": False,
         }
+
+    def assert_academic_fields_are_integers(self, user_data):
+        self.assertIs(type(user_data["entry_year"]), int)
+        self.assertIs(type(user_data["current_term"]), int)
 
     def test_registration_creates_normal_student_and_returns_tokens(self):
         response = self.client.post(self.register_url, self.payload, format="json")
 
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.data["user"], self.expected_user())
+        self.assert_academic_fields_are_integers(response.json()["user"])
         self.assertEqual(set(response.data), {"user", "access", "refresh"})
         user = User.objects.get(student_no=self.payload["student_no"])
         self.assertEqual(user.entry_year, 1401)
@@ -97,8 +104,7 @@ class AccountsAPITests(TestCase):
             format="json",
         )
         self.assertEqual(response.status_code, 201)
-        self.assertEqual(response.data["user"]["entry_year"], "1401")
-        self.assertEqual(response.data["user"]["current_term"], "8")
+        self.assert_academic_fields_are_integers(response.json()["user"])
 
     def test_registration_cannot_set_admin_fields(self):
         response = self.client.post(
@@ -150,6 +156,7 @@ class AccountsAPITests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["user"], self.expected_user())
+        self.assert_academic_fields_are_integers(response.json()["user"])
         self.assertEqual(AccessToken(response.data["access"])["user_id"], str(user.pk))
         self.assertEqual(RefreshToken(response.data["refresh"])["user_id"], str(user.pk))
 
@@ -217,8 +224,28 @@ class AccountsAPITests(TestCase):
         response = self.client.get(self.me_url)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, self.expected_user())
+        self.assert_academic_fields_are_integers(response.json())
         self.assertNotEqual(response.data["student_no"], other.student_no)
         self.assertEqual(set(response.data), set(self.expected_user()))
+
+    def test_nullable_academic_fields_remain_null_in_login_and_me(self):
+        user = self.create_student(entry_year=None, current_term=None)
+        login = self.client.post(
+            self.login_url,
+            {"student_no": user.student_no, "password": self.payload["password"]},
+            format="json",
+        )
+        self.assertEqual(login.status_code, 200)
+        self.assertIsNone(login.json()["user"]["entry_year"])
+        self.assertIsNone(login.json()["user"]["current_term"])
+        self.assertFalse(login.json()["user"]["is_staff"])
+        self.assertFalse(login.json()["user"]["is_superuser"])
+
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {login.data["access"]}')
+        me = self.client.get(self.me_url)
+        self.assertEqual(me.status_code, 200)
+        self.assertIsNone(me.json()["entry_year"])
+        self.assertIsNone(me.json()["current_term"])
 
     def test_refresh_returns_new_access_and_rejects_invalid_token(self):
         user = self.create_student()

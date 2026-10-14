@@ -70,10 +70,16 @@ class AdminUsersAPITests(TestCase):
         }
         self.assertTrue(all(set(item) == expected for item in response.data["results"]))
         student = next(item for item in response.data["results"] if item["id"] == str(self.student.pk))
+        student_json = next(item for item in response.json()["results"] if item["id"] == str(self.student.pk))
         self.assertEqual(student["entry_year"], 1402)
         self.assertEqual(student["current_term"], 5)
+        self.assertIs(type(student_json["entry_year"]), int)
+        self.assertIs(type(student_json["current_term"]), int)
         self.assertFalse(student["is_staff"])
         self.assertFalse(student["is_superuser"])
+        other = next(item for item in response.json()["results"] if item["id"] == str(self.other_student.pk))
+        self.assertIsNone(other["entry_year"])
+        self.assertIsNone(other["current_term"])
         self.assertNotIn(self.student.password, str(response.data))
 
     def test_searches_student_number_and_names(self):
@@ -145,6 +151,8 @@ class AdminUsersAPITests(TestCase):
         grant = self.client.patch(self.access_url(self.student), {"is_staff": True}, format="json")
         self.assertEqual(grant.status_code, 200)
         self.assertEqual(grant.data["id"], str(self.student.pk))
+        self.assertIs(type(grant.json()["entry_year"]), int)
+        self.assertIs(type(grant.json()["current_term"]), int)
         self.assertTrue(grant.data["is_staff"])
         self.assertNotIn("password", grant.data)
         self.student.refresh_from_db()
@@ -153,6 +161,8 @@ class AdminUsersAPITests(TestCase):
 
         revoke = self.client.patch(self.access_url(self.other_staff), {"is_staff": False}, format="json")
         self.assertEqual(revoke.status_code, 200)
+        self.assertIsNone(revoke.json()["entry_year"])
+        self.assertIsNone(revoke.json()["current_term"])
         self.other_staff.refresh_from_db()
         self.assertFalse(self.other_staff.is_staff)
         self.assertFalse(self.other_staff.is_superuser)
