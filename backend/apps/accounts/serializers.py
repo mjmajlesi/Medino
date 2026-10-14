@@ -10,16 +10,43 @@ class StudentUserSerializer(serializers.ModelSerializer):
     entry_year = serializers.SerializerMethodField()
     current_term = serializers.SerializerMethodField()
     is_staff = serializers.BooleanField(read_only=True)
+    is_superuser = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = User
-        fields = ("first_name", "last_name", "student_no", "entry_year", "current_term", "is_staff")
+        fields = ("first_name", "last_name", "student_no", "entry_year", "current_term", "is_staff", "is_superuser")
 
     def get_entry_year(self, user):
         return str(user.entry_year) if user.entry_year is not None else ""
 
     def get_current_term(self, user):
         return str(user.current_term) if user.current_term is not None else ""
+
+
+class AdminUserSerializer(serializers.ModelSerializer):
+    id = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = User
+        fields = (
+            "id", "student_no", "first_name", "last_name", "entry_year",
+            "current_term", "is_active", "is_staff", "is_superuser",
+        )
+        read_only_fields = fields
+
+
+class StaffAccessSerializer(serializers.Serializer):
+    is_staff = serializers.BooleanField(required=True)
+
+    def to_internal_value(self, data):
+        if not hasattr(data, "keys"):
+            raise serializers.ValidationError({"detail": "Expected an object with is_staff."})
+        unexpected = set(data.keys()) - {"is_staff"}
+        if unexpected:
+            raise serializers.ValidationError({
+                field: ["This field cannot be changed here."] for field in sorted(unexpected)
+            })
+        return super().to_internal_value(data)
 
 
 class RegisterSerializer(serializers.ModelSerializer):

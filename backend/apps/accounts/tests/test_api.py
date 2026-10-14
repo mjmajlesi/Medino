@@ -43,6 +43,7 @@ class AccountsAPITests(TestCase):
                 for key in ("first_name", "last_name", "student_no", "entry_year", "current_term")
             },
             "is_staff": False,
+            "is_superuser": False,
         }
 
     def test_registration_creates_normal_student_and_returns_tokens(self):
@@ -166,6 +167,19 @@ class AccountsAPITests(TestCase):
         me = self.client.get(self.me_url)
         self.assertEqual(me.status_code, 200)
         self.assertEqual(me.data, login.data["user"])
+
+    def test_superuser_login_and_me_report_both_role_flags(self):
+        superuser = self.create_student(is_staff=True, is_superuser=True)
+        login = self.client.post(
+            self.login_url,
+            {"student_no": superuser.student_no, "password": self.payload["password"]},
+            format="json",
+        )
+        self.assertEqual(login.status_code, 200)
+        self.assertTrue(login.data["user"]["is_staff"])
+        self.assertTrue(login.data["user"]["is_superuser"])
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {login.data["access"]}')
+        self.assertEqual(self.client.get(self.me_url).data, login.data["user"])
 
     def test_login_rejects_wrong_unknown_and_inactive_with_same_error(self):
         user = self.create_student()

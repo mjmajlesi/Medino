@@ -89,7 +89,7 @@ Django Admin is served at `/django-admin/`; the React application owns `/admin`.
 | POST | `/api/auth/register/` | Public | Register a student and issue JWTs. |
 | POST | `/api/auth/login/` | Public | Log in with `student_no` and password. |
 | POST | `/api/auth/token/refresh/` | Refresh token | Issue a new access token. |
-| GET | `/api/auth/me/` | Access token | Return the current user, including `is_staff`. |
+| GET | `/api/auth/me/` | Access token | Return the current user, including `is_staff` and `is_superuser`. |
 | GET | `/api/sections/` | Public | List academic sections. |
 | GET | `/api/lessons/` | Public | List, filter, search, and sort lessons. |
 | POST | `/api/lessons/` | Staff access token | Create a lesson from an existing section slug and an existing or new professor name. |
@@ -101,9 +101,13 @@ Django Admin is served at `/django-admin/`; the React application owns `/admin`.
 | GET | `/api/uploads/mine/` | Access token | List the current user's uploads. |
 | GET | `/api/admin/pending/` | Staff access token | List pending uploads. |
 | POST | `/api/admin/approve/{id}/` | Staff access token | Send `action=approve` or `action=reject`. |
+| GET | `/api/admin/users/` | Staff access token | Paginated user list; supports `search`, `role`, and `page`. |
+| PATCH | `/api/admin/users/{id}/access/` | Staff access token | Change only `is_staff` using `{ "is_staff": true/false }`. |
 | GET | `/api/resources/{id}/file/` | Public if approved; otherwise owner or staff access token | Stream a stored file. |
 
-The lesson list accepts `section`, `search`, `professor`, `term`, `type`, `ordering=-created_at`, and `ordering=-views`. Lesson views are stored values. Auth responses include `is_staff`; student registration cannot grant staff status. IDs in API responses are strings and dates use ISO 8601.
+The lesson list accepts `section`, `search`, `professor`, `term`, `type`, `ordering=-created_at`, and `ordering=-views`. Lesson views are stored values. Auth responses include `is_staff` and `is_superuser`; student registration cannot grant either privilege. IDs in API responses are strings and dates use ISO 8601.
+
+`is_staff` grants Medino React admin access. `is_superuser` is Django's highest privilege and cannot be changed through the React user management API. Both staff and superusers may list users and change `is_staff` for non-superusers. The user list has 20 rows per page, searches `student_no`, `first_name`, and `last_name`, and accepts `role=all|student|staff|superuser`. Access changes reject any field besides `is_staff`. No caller may change a superuser through this endpoint or revoke their own staff access; a staff admin may revoke another non-superuser staff admin. The user list and mutation responses exclude passwords, tokens, groups, and raw permissions.
 
 Lesson writes accept `section_slug`, `title`, `professor`, `term`, and optional `code`; the section must already exist. POST and PUT trim the professor name, reuse a single existing match, or create a new professor. Ambiguous names are rejected. POST and PUT return the same lesson fields as the public list. Deleting a lesson also deletes all its Resource rows. Uploaded files are removed through Django storage after the database transaction commits; unrelated or still-referenced files are retained. Missing files do not block deletion. Unexpected storage failures are logged after commit, so the database deletion still returns HTTP 204 and an orphaned file may require operator cleanup.
 
