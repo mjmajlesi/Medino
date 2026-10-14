@@ -102,6 +102,8 @@ POST /api/uploads/              // multipart: lesson, professor, type, title, de
 GET  /api/uploads/mine/        // Resource[] کاربر جاری (همه وضعیت‌ها)
 GET  /api/admin/pending/       // Resource[] — فقط is_staff (هدر Bearer)
 POST /api/admin/approve/:id/   // {action: 'approve'|'reject'} -> {id, status}
+GET  /api/admin/users/?search=&role=all|student|staff|superuser&page=  // {count,next,previous,results} (۲۰تایی)
+PATCH /api/admin/users/:id/access/  // فقط {is_staff} — سوپریوزر و خودِ کاربر مستثنا (سمت سرور)
 POST /api/auth/register/       // first_name, last_name, student_no, entry_year, current_term, password
 POST /api/auth/login/          // {student_no, password}
      // جواب هر دو: {user: {first_name, last_name, student_no, entry_year, current_term, is_staff}, access, refresh}

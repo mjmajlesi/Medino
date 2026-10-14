@@ -19,6 +19,7 @@ const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const AdminDashboardPage = lazy(() => import('./pages/AdminDashboardPage'));
 const AdminPendingPage = lazy(() => import('./pages/AdminPendingPage'));
 const AdminLessonsPage = lazy(() => import('./pages/AdminLessonsPage'));
+const AdminUsersPage = lazy(() => import('./pages/AdminUsersPage'));
 
 function PageFallback() {
   return (
@@ -54,6 +55,7 @@ export default function App() {
         <Route path="admin" element={<RequireAuth><RequireAdmin>{lazyPage(<AdminDashboardPage />)}</RequireAdmin></RequireAuth>} />
         <Route path="admin/pending" element={<RequireAuth><RequireAdmin>{lazyPage(<AdminPendingPage />)}</RequireAdmin></RequireAuth>} />
         <Route path="admin/lessons" element={<RequireAuth><RequireAdmin>{lazyPage(<AdminLessonsPage />)}</RequireAdmin></RequireAuth>} />
+        <Route path="admin/users" element={<RequireAuth><RequireAdmin>{lazyPage(<AdminUsersPage />)}</RequireAdmin></RequireAuth>} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>

@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { BookOpen, ClipboardCheck, Inbox, PlusCircle } from 'lucide-react';
+import { BookOpen, ClipboardCheck, Inbox, PlusCircle, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { getLessons, getStats } from '../services/lessons.service';
 import { getPendingUploads } from '../services/uploads.service';
@@ -37,7 +37,7 @@ export default function AdminDashboardPage() {
         ))}
       </div>
 
-      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Link
           to="/admin/pending"
           className="flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-5 transition-all hover:-translate-y-0.5 hover:shadow-md"
@@ -72,6 +72,16 @@ export default function AdminDashboardPage() {
           <span>
             <span className="block font-medium">مدیریت دروس</span>
             <span className="text-xs text-slate-500">افزودن، ویرایش و حذف درس</span>
+          </span>
+        </Link>
+        <Link
+          to="/admin/users"
+          className="flex items-center gap-3 rounded-2xl border border-brand-200 bg-brand-50 p-5 transition-all hover:-translate-y-0.5 hover:shadow-md"
+        >
+          <Users size={26} className="shrink-0 text-brand-600" aria-hidden="true" />
+          <span>
+            <span className="block font-medium">مدیریت ادمین‌ها</span>
+            <span className="text-xs text-slate-500">مشاهده، ارتقا و عزل ادمین‌ها</span>
           </span>
         </Link>
       </div>

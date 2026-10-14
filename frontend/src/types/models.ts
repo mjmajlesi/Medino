@@ -65,11 +65,29 @@ export interface StudentUser {
   first_name: string;
   last_name: string;
   student_no: string;
-  entry_year: string;
-  current_term: string;
+  // بک‌اند گاهی عدد و گاهی رشته می‌فرستد (me در برابر لیست ادمین) — هر دو پشتیبانی می‌شود
+  entry_year: string | number;
+  current_term: string | number;
   /** از API می‌آید (is_staff جنگو) — در Mock فقط ادمین نمایشی true است */
   is_staff?: boolean;
+  /** از API می‌آید — فقط نمایشی؛ از طریق فرانت قابل تغییر نیست */
+  is_superuser?: boolean;
 }
+
+/** ردیف کاربر در لیست مدیریت ادمین‌ها */
+export interface StaffUser extends StudentUser {
+  id: string;
+}
+
+/** پاسخ صفحه‌بندی‌شده DRF */
+export interface Paginated<T> {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: T[];
+}
+
+export type AdminRoleFilter = 'all' | 'student' | 'staff' | 'superuser';
 
 export const RESOURCE_TYPE_LABELS: Record<ResourceType, string> = {
   note: 'جزوه',
